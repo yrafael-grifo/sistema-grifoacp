@@ -117,8 +117,28 @@
 </div>
 
 <script>
-// --- CONFIGURACIÓN CLOUD CORREGIDA ---
+// --- CONFIGURACIÓN CLOUD ---
 const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec'; 
+
+const CAP = { diesel: 5000, gasohol: 1000 };
+const STOCK_CRITICO = { diesel: 3000, gasohol: 450 };
+const DIAS_LIMITE = 90;
+
+let db = JSON.parse(localStorage.getItem('fuel_v14_final')) || {
+    stockFuel: { diesel: 5000, gasohol: 1000 },
+    stockFiltros: { cf60: 3, cf100: 2 }, 
+    historial: [],
+    equipos: [
+        { id: 'Surtidor 1 Diesel', f: 'CF60', ult: '2026-01-15' },
+        { id: 'Surtidor 2 Diesel', f: 'CF60', ult: '2026-01-23' },
+        { id: 'Hipotanque (Móvil)', f: 'CF100', ult: '2025-12-10' },
+        { id: 'Surtidor Gasohol', f: 'MALLA', ult: '2026-01-15' }
+    ]
+};
+
+function toggleCisterna() {
+    document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none';
+}
 
 function enviarANube(datos) {
     if (!URL_GOOGLE_SHEETS || URL_GOOGLE_SHEETS.includes('AQUI')) return;
@@ -140,7 +160,6 @@ function enviarANube(datos) {
             status.style.color = "#10b981";
         }
     }).catch((error) => {
-        console.error("Error Cloud:", error);
         if (status) {
             status.innerText = "❌ Error de conexión";
             status.style.color = "#ef4444";
@@ -148,24 +167,25 @@ function enviarANube(datos) {
     });
 }
 
-const CAP = { diesel: 5000, gasohol: 1000 };
-const STOCK_CRITICO = { diesel: 3000, gasohol: 450 };
-const DIAS_LIMITE = 90;
-
-let db = JSON.parse(localStorage.getItem('fuel_v14_final')) || {
-    stockFuel: { diesel: 5000, gasohol: 1000 },
-    stockFiltros: { cf60: 3, cf100: 2 }, 
-    historial: [],
-    equipos: [
-        { id: 'Surtidor 1 Diesel', f: 'CF60', ult: '2026-01-15' },
-        { id: 'Surtidor 2 Diesel', f: 'CF60', ult: '2026-01-23' },
-        { id: 'Hipotanque (Móvil)', f: 'CF100', ult: '2025-12-10' },
-        { id: 'Surtidor Gasohol', f: 'MALLA', ult: '2026-01-15' }
-    ]
-};
-
-function toggleCisterna() {
-    document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none';
+async function cargarDatosDesdeNube() {
+    const status = document.getElementById('statusCloud');
+    status.innerText = "⌛ Sincronizando datos...";
+    try {
+        const response = await fetch(URL_GOOGLE_SHEETS);
+        const data = await response.json();
+        
+        if (data && data.ultimoSaldo !== undefined) {
+            db.stockFuel.diesel = parseFloat(data.ultimoSaldo);
+            if (data.historial && data.historial.length > 0) {
+                db.historial = data.historial;
+            }
+            status.innerText = "✅ Datos de la Nube cargados";
+            status.style.color = "#10b981";
+            actualizarUI();
+        }
+    } catch (e) {
+        status.innerText = "✅ Modo Local Activo";
+    }
 }
 
 function procesarMovimiento() {
@@ -194,10 +214,7 @@ function procesarMovimiento() {
     };
 
     db.historial.unshift(nuevaOp);
-
-    // Enviar a la nube
     enviarANube(nuevaOp);
-
     actualizarUI();
     document.getElementById('cant').value = "";
     document.getElementById('referencia').value = "";
@@ -210,135 +227,66 @@ function reponerFiltro(t) {
 
 function actualizarUI() {
     localStorage.setItem('fuel_v14_final', JSON.stringify(db));
-    
     document.getElementById('sDiesel').innerText = db.stockFuel.diesel.toFixed(2);
     document.getElementById('sGasohol').innerText = db.stockFuel.gasohol.toFixed(2);
     document.getElementById('f60').innerText = db.stockFiltros.cf60;
     document.getElementById('f100').innerText = db.stockFiltros.cf100;
 
     let alerts = "";
-    if(db.stockFuel.diesel <= STOCK_CRITICO.diesel) alerts += `<div class="bg-danger" style="padding:10px; border-radius:8px; margin-bottom:8px;">⚠️ <b>DIESEL CRÍTICO:</b> Realizar pedido HOY.</div>`;
-    if(db.stockFuel.gasohol <= STOCK_CRITICO.gasohol) alerts += `<div class="bg-danger" style="padding:10px; border-radius:8px; margin-bottom:8px;">⚠️ <b>GASOHOL CRÍTICO:</b> Realizar pedido HOY.</div>`;
-    document.getElementById('alertasContainer').innerHTML = alerts || "✅ Stock con margen 24h OK.";
-
-    let fAlert = "";
-    if(db.stockFiltros.cf60 <= 2) fAlert += `<p class="status-badge bg-danger">⚠️ Reponer Filtros CF60</p>`;
-    if(db.stockFiltros.cf100 <= 1) fAlert += `<p class="status-badge bg-danger">⚠️ Reponer Filtros CF100</p>`;
-    document.getElementById('alertaFiltros').innerHTML = fAlert;
+    if(db.stockFuel.diesel <= STOCK_CRITICO.diesel) alerts += `<div class="bg-danger" style="padding:10px; border-radius:8px; margin-bottom:8px;">⚠️ <b>DIESEL CRÍTICO</b></div>`;
+    if(db.stockFuel.gasohol <= STOCK_CRITICO.gasohol) alerts += `<div class="bg-danger" style="padding:10px; border-radius:8px; margin-bottom:8px;">⚠️ <b>GASOHOL CRÍTICO</b></div>`;
+    document.getElementById('alertasContainer').innerHTML = alerts || "✅ Stock OK.";
 
     const hoy = new Date();
     document.getElementById('mantoBody').innerHTML = db.equipos.map((e, i) => {
         const diff = Math.floor((hoy - new Date(e.ult)) / (1000*60*60*24));
         let c = diff >= DIAS_LIMITE ? "bg-danger" : (diff >= 80 ? "bg-warning" : "bg-success");
-        return `<tr><td><b>${e.id}</b></td><td><code>${e.f}</code></td><td>${e.ult}</td><td>${diff} días</td>
+        return `<tr><td><b>${e.id}</b></td><td><code>${e.f}</code></td><td>${e.ult}</td><td>${diff} d</td>
         <td><span class="status-badge ${c}">${diff>=90?'VENCIDO':'OK'}</span></td>
         <td><button class="btn btn-blue btn-sm" onclick="hacerManto(${i})">Reset</button></td></tr>`;
     }).join('');
 
     document.getElementById('historialBody').innerHTML = db.historial.slice(0, 15).map(h => `
-        <tr>
-            <td>${h.fecha}</td>
-            <td style="color:${h.mov==='INGRESO'?'green':'red'}"><b>${h.mov}</b></td>
-            <td>${h.prod}</td>
-            <td>${h.cant}</td>
-            <td>${h.ref}</td>
-            <td><b>${h.saldo}</b></td>
-        </tr>
-    `).join('');
+        <tr><td>${h.fecha}</td><td style="color:${h.mov==='INGRESO'?'green':'red'}"><b>${h.mov}</b></td>
+        <td>${h.prod}</td><td>${h.cant}</td><td>${h.ref}</td><td><b>${h.saldo}</b></td></tr>`).join('');
 }
 
 function hacerManto(i) {
     const e = db.equipos[i];
     if(e.f.startsWith('CF')) {
         const fKey = e.f.toLowerCase();
-        if(db.stockFiltros[fKey] <= 0) return alert("Sin filtros en stock.");
-        if(confirm(`¿Descontar 1 filtro ${e.f}?`)) {
+        if(db.stockFiltros[fKey] <= 0) return alert("Sin filtros.");
+        if(confirm(`¿Usar 1 ${e.f}?`)) {
             db.stockFiltros[fKey]--;
             db.equipos[i].ult = new Date().toISOString().split('T')[0];
         }
-    } else if(confirm("¿Confirmar mantenimiento?")) {
+    } else {
         db.equipos[i].ult = new Date().toISOString().split('T')[0];
     }
     actualizarUI();
 }
 
-// --- 1. FUNCIÓN EXCEL MEJORADA (Mayúsculas y Negrita) ---
 function exportarExcel() {
-    // Transformamos los encabezados a mayúsculas para el Excel
     const historialMayusculas = db.historial.map(h => ({
         "FECHA Y HORA": h.fecha,
         "OPERACIÓN": h.mov,
-        "PRODUCTO": h.prod || "DIESEL",
+        "PRODUCTO": h.prod,
         "CANTIDAD": h.cant,
         "REFERENCIA": h.ref,
         "SALDO FINAL": h.saldo
     }));
-
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(historialMayusculas);
-    
-    // Excel aplica negrita automáticamente a la primera fila si detecta formato de tabla
     XLSX.utils.book_append_sheet(wb, ws, "HISTORIAL");
     XLSX.writeFile(wb, "REPORTE_COMBUSTIBLE.xlsx");
 }
 
-// --- 2. FUNCIÓN PARA CARGAR DATOS DESDE LA NUBE AL ABRIR ---
-async function cargarDatosDesdeNube() {
-    const status = document.getElementById('statusCloud');
-    status.innerText = "⌛ Cargando datos desde nube...";
-    
-    try {
-        const response = await fetch(URL_GOOGLE_SHEETS);
-        const data = await response.json();
-        
-        if (data.ultimoSaldo !== undefined) {
-            // Actualizamos el stock local con lo que dice la nube
-            // Nota: Aquí podrías diferenciar por producto si tu Excel lo permite
-            db.stockFuel.diesel = parseFloat(data.ultimoSaldo);
-            // También podrías actualizar db.historial con data.historial
-            
-            status.innerText = "✅ Datos sincronizados";
-            actualizarUI();
-        }
-    } catch (e) {
-        console.log("Modo offline o error de carga");
-        status.innerText = "✅ Sincronización Cloud Activa";
-    }
-}
-
-// Llamamos a la carga al final del script
-cargarDatosDesdeNube();
-}
-    // --- FUNCIÓN DE CARGA MEJORADA ---
-async function cargarDatosDesdeNube() {
-    const status = document.getElementById('statusCloud');
-    // No borramos los datos locales hasta estar seguros de tener los de la nube
-    try {
-        const response = await fetch(URL_GOOGLE_SHEETS);
-        const data = await response.json();
-        
-        if (data && data.ultimoSaldo !== undefined) {
-            // Solo actualizamos si el saldo de la nube es un número válido
-            db.stockFuel.diesel = parseFloat(data.ultimoSaldo);
-            
-            // Si el Excel trae historial, lo unimos con el local
-            if (data.historial && data.historial.length > 0) {
-                db.historial = data.historial;
-            }
-            
-            status.innerText = "✅ Sincronizado con Excel";
-            actualizarUI();
-        }
-    } catch (e) {
-        console.log("Error de carga, usando datos locales...");
-        status.innerText = "✅ Modo Local (Sin Internet)";
-    }
-}
-
+// Inicialización
 actualizarUI();
+cargarDatosDesdeNube();
 </script>
 </body>
-
 </html>
+
 
 
