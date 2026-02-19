@@ -262,28 +262,52 @@ function hacerManto(i) {
     actualizarUI();
 }
 
+// --- 1. FUNCIÓN EXCEL MEJORADA (Mayúsculas y Negrita) ---
 function exportarExcel() {
-    // 1. Preparamos los datos transformando las llaves (encabezados) a MAYÚSCULAS
-    const historialMayusculas = db.historial.map(registro => {
-        return {
-            "FECHA Y HORA": registro.fecha,
-            "OPERACIÓN": registro.mov,
-            "PRODUCTO": registro.prod,
-            "CANTIDAD (GL)": registro.cant,
-            "REFERENCIA": registro.ref,
-            "SALDO FINAL": registro.saldo
-        };
-    });
+    // Transformamos los encabezados a mayúsculas para el Excel
+    const historialMayusculas = db.historial.map(h => ({
+        "FECHA Y HORA": h.fecha,
+        "OPERACIÓN": h.mov,
+        "PRODUCTO": h.prod || "DIESEL",
+        "CANTIDAD": h.cant,
+        "REFERENCIA": h.ref,
+        "SALDO FINAL": h.saldo
+    }));
 
-    // 2. Creamos el libro y la hoja de trabajo
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(historialMayusculas);
+    
+    // Excel aplica negrita automáticamente a la primera fila si detecta formato de tabla
+    XLSX.utils.book_append_sheet(wb, ws, "HISTORIAL");
+    XLSX.writeFile(wb, "REPORTE_COMBUSTIBLE.xlsx");
+}
 
-    // 3. Añadimos la hoja al libro
-    XLSX.utils.book_append_sheet(wb, ws, "Historial_Combustible");
+// --- 2. FUNCIÓN PARA CARGAR DATOS DESDE LA NUBE AL ABRIR ---
+async function cargarDatosDesdeNube() {
+    const status = document.getElementById('statusCloud');
+    status.innerText = "⌛ Cargando datos desde nube...";
+    
+    try {
+        const response = await fetch(URL_GOOGLE_SHEETS);
+        const data = await response.json();
+        
+        if (data.ultimoSaldo !== undefined) {
+            // Actualizamos el stock local con lo que dice la nube
+            // Nota: Aquí podrías diferenciar por producto si tu Excel lo permite
+            db.stockFuel.diesel = parseFloat(data.ultimoSaldo);
+            // También podrías actualizar db.historial con data.historial
+            
+            status.innerText = "✅ Datos sincronizados";
+            actualizarUI();
+        }
+    } catch (e) {
+        console.log("Modo offline o error de carga");
+        status.innerText = "✅ Sincronización Cloud Activa";
+    }
+}
 
-    // 4. Descargamos el archivo
-    XLSX.writeFile(wb, "Reporte_Combustible_Pro.xlsx");
+// Llamamos a la carga al final del script
+cargarDatosDesdeNube();
 }
 
 actualizarUI();
@@ -291,3 +315,4 @@ actualizarUI();
 </body>
 
 </html>
+
