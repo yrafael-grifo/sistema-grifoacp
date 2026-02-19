@@ -263,13 +263,31 @@ function hacerManto(i) {
 }
 
 function exportarExcel() {
+    // 1. Preparamos los datos transformando las llaves (encabezados) a MAYÚSCULAS
+    const historialMayusculas = db.historial.map(registro => {
+        return {
+            "FECHA Y HORA": registro.fecha,
+            "OPERACIÓN": registro.mov,
+            "PRODUCTO": registro.prod,
+            "CANTIDAD (GL)": registro.cant,
+            "REFERENCIA": registro.ref,
+            "SALDO FINAL": registro.saldo
+        };
+    });
+
+    // 2. Creamos el libro y la hoja de trabajo
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(db.historial);
-    XLSX.utils.book_append_sheet(wb, ws, "Historial_Completo");
+    const ws = XLSX.utils.json_to_sheet(historialMayusculas);
+
+    // 3. Añadimos la hoja al libro
+    XLSX.utils.book_append_sheet(wb, ws, "Historial_Combustible");
+
+    // 4. Descargamos el archivo
     XLSX.writeFile(wb, "Reporte_Combustible_Pro.xlsx");
 }
 
 actualizarUI();
 </script>
 </body>
+
 </html>
