@@ -140,7 +140,8 @@ function toggleCisterna() {
     document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none';
 }
 
-function enviarANube(datos) {
+// --- NUEVA FUNCIÓN DE ENVÍO (Soporta ambos productos) ---
+function enviarANube(mov, prod, cant, ref) {
     if (!URL_GOOGLE_SHEETS || URL_GOOGLE_SHEETS.includes('AQUI')) return;
     const status = document.getElementById('statusCloud');
     if (status) status.innerText = "☁️ Sincronizando...";
@@ -149,17 +150,18 @@ function enviarANube(datos) {
         method: 'POST',
         mode: 'no-cors',
         body: JSON.stringify({
-            tipo: datos.mov,
-            cantidad: datos.cant + " (" + datos.prod + ")",
-            responsable: datos.ref,
-            stock: datos.saldo
+            tipo: mov,
+            cantidad: cant + " (" + prod + ")",
+            responsable: ref,
+            stockDiesel: db.stockFuel.diesel,
+            stockGasohol: db.stockFuel.gasohol
         })
     }).then(() => {
         if (status) {
             status.innerText = "✅ Sincronizado";
             status.style.color = "#10b981";
         }
-    }).catch((error) => {
+    }).catch(() => {
         if (status) {
             status.innerText = "❌ Error de conexión";
             status.style.color = "#ef4444";
@@ -167,6 +169,7 @@ function enviarANube(datos) {
     });
 }
 
+// --- NUEVA FUNCIÓN DE CARGA (Soporta ambos productos) ---
 async function cargarDatosDesdeNube() {
     const status = document.getElementById('statusCloud');
     status.innerText = "⌛ Sincronizando datos...";
@@ -174,12 +177,11 @@ async function cargarDatosDesdeNube() {
         const response = await fetch(URL_GOOGLE_SHEETS);
         const data = await response.json();
         
-        if (data && data.ultimoSaldo !== undefined) {
-            db.stockFuel.diesel = parseFloat(data.ultimoSaldo);
-            if (data.historial && data.historial.length > 0) {
-                db.historial = data.historial;
-            }
-            status.innerText = "✅ Datos de la Nube cargados";
+        if (data) {
+            if (data.ultimoDiesel !== undefined) db.stockFuel.diesel = parseFloat(data.ultimoDiesel);
+            if (data.ultimoGasohol !== undefined) db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
+            
+            status.innerText = "✅ Sincronizado con Excel";
             status.style.color = "#10b981";
             actualizarUI();
         }
@@ -214,7 +216,10 @@ function procesarMovimiento() {
     };
 
     db.historial.unshift(nuevaOp);
-    enviarANube(nuevaOp);
+    
+    // Llamada a la nube corregida
+    enviarANube(mov.toUpperCase(), prod.toUpperCase(), cant.toFixed(2), ref.toUpperCase());
+
     actualizarUI();
     document.getElementById('cant').value = "";
     document.getElementById('referencia').value = "";
@@ -266,6 +271,7 @@ function hacerManto(i) {
     actualizarUI();
 }
 
+// --- EXPORTACIÓN MEJORADA (MAYÚSCULAS) ---
 function exportarExcel() {
     const historialMayusculas = db.historial.map(h => ({
         "FECHA Y HORA": h.fecha,
@@ -287,6 +293,3 @@ cargarDatosDesdeNube();
 </script>
 </body>
 </html>
-
-
-
