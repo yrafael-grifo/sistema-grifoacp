@@ -309,10 +309,36 @@ async function cargarDatosDesdeNube() {
 // Llamamos a la carga al final del script
 cargarDatosDesdeNube();
 }
+    // --- FUNCIÓN DE CARGA MEJORADA ---
+async function cargarDatosDesdeNube() {
+    const status = document.getElementById('statusCloud');
+    // No borramos los datos locales hasta estar seguros de tener los de la nube
+    try {
+        const response = await fetch(URL_GOOGLE_SHEETS);
+        const data = await response.json();
+        
+        if (data && data.ultimoSaldo !== undefined) {
+            // Solo actualizamos si el saldo de la nube es un número válido
+            db.stockFuel.diesel = parseFloat(data.ultimoSaldo);
+            
+            // Si el Excel trae historial, lo unimos con el local
+            if (data.historial && data.historial.length > 0) {
+                db.historial = data.historial;
+            }
+            
+            status.innerText = "✅ Sincronizado con Excel";
+            actualizarUI();
+        }
+    } catch (e) {
+        console.log("Error de carga, usando datos locales...");
+        status.innerText = "✅ Modo Local (Sin Internet)";
+    }
+}
 
 actualizarUI();
 </script>
 </body>
 
 </html>
+
 
