@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEMA ACP V15 - FILTROS PRO</title>
+    <title>SISTEMA ACP V15 PRO - FILTROS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --bg:#f1f5f9; --c:#ffffff; --p:#0f172a; --a:#3b82f6; --d:#2563eb; --g:#10b981; --err:#ef4444; --warn:#f59e0b; --ok:#22c55e; }
@@ -11,7 +10,7 @@
         .container { max-width: 1400px; margin: auto; display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
         .header { grid-column: span 12; display: flex; justify-content: space-between; align-items: center; background: var(--p); padding: 15px 30px; border-radius: 12px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .card { background: var(--c); border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .card-title { font-weight: 700; margin-bottom: 15px; color: var(--p); font-size: 1.1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-weight: 700; margin-bottom: 15px; color: var(--p); border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; display: flex; justify-content: space-between; }
         .stock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .stock-item { padding: 15px; border-radius: 10px; border: 2px solid #f1f5f9; text-align: center; }
         .val { font-size: 2.2rem; font-weight: 800; display: block; margin: 5px 0; }
@@ -22,13 +21,11 @@
         .btn { cursor: pointer; padding: 10px 15px; border: none; border-radius: 8px; font-weight: 600; transition: 0.2s; text-align: center; }
         .btn-main { background: var(--a); color: white; width: 100%; margin-top: 5px; }
         .btn-sec { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
-        .btn-filter { background: var(--p); color: white; padding: 5px 15px; font-size: 0.8rem; }
-        input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 12px; box-sizing: border-box; font-family: inherit; }
+        input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 12px; box-sizing: border-box; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px; font-size: 0.75rem; color: #64748b; border-bottom: 2px solid #f1f5f9; background: #f8fafc; }
-        td { padding: 12px; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
-        .filter-group { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 10px; }
-        .filter-group div { flex: 1; }
+        th { text-align: left; padding: 10px; font-size: 0.75rem; color: #64748b; border-bottom: 2px solid #f1f5f9; background: #f8fafc; }
+        td { padding: 10px; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
+        .filter-bar { display: flex; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 15px; align-items: flex-end; }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
         .modal-c { background: white; margin: 5% auto; padding: 25px; width: 500px; border-radius: 15px; }
     </style>
@@ -49,12 +46,7 @@
         <label>Fecha del Movimiento:</label>
         <input type="datetime-local" id="inFecha">
         <label>Operación:</label>
-        <select id="inMov" onchange="chIng()">
-            <option value="SALIDA">Despacho (Salida)</option>
-            <option value="INGRESO">Cisterna (Ingreso)</option>
-            <option value="AJUSTE">Lectura Varillaje (Ajuste)</option>
-        </select>
-        <label>Producto:</label>
+        <select id="inMov" onchange="chIng()"><option value="SALIDA">Despacho (Salida)</option><option value="INGRESO">Cisterna (Ingreso)</option><option value="AJUSTE">Lectura Varillaje (Ajuste)</option></select>
         <select id="inProd"><option value="DIESEL">Diesel B5 S50</option><option value="GASOHOL">Gasohol Regular</option></select>
         <label id="lblCant">Cantidad (Gln):</label>
         <input type="number" id="inCant" placeholder="0.00">
@@ -65,80 +57,56 @@
     <div class="card" style="grid-column: span 8;">
         <div class="card-title">🚚 Stock Real (Consumo: 1,700/165 gl)</div>
         <div class="stock-grid">
-            <div id="mD" class="stock-item">
-                <b>DIESEL B5 S50</b>
-                <span id="vD" class="val" style="color:var(--d)">0.00</span>
-                <div id="aD" class="auton">---</div>
-            </div>
-            <div id="mG" class="stock-item">
-                <b>GASOHOL REGULAR</b>
-                <span id="vG" class="val" style="color:var(--g)">0.00</span>
-                <div id="aG" class="auton">---</div>
-            </div>
+            <div id="mD" class="stock-item"><b>DIESEL</b><span id="vD" class="val" style="color:var(--d)">0.00</span><div id="aD" class="auton">---</div></div>
+            <div id="mG" class="stock-item"><b>GASOHOL</b><span id="vG" class="val" style="color:var(--g)">0.00</span><div id="aG" class="auton">---</div></div>
         </div>
     </div>
 
     <div class="card" style="grid-column: span 12;">
-        <div class="card-title">
-            <span>📝 Historial de Movimientos</span>
-            <span id="rowCount" style="font-size: 0.8rem; background: var(--bg); padding: 4px 10px; border-radius: 5px;">Mostrando todos</span>
+        <div class="card-title">📝 Historial y Filtros <span id="counter" style="font-size:0.8rem; background:#f1f5f9; padding:2px 8px; border-radius:5px;">Cargando...</span></div>
+        <div class="filter-bar">
+            <div style="flex:1"><label>Desde:</label><input type="date" id="fDesde" onchange="filterData()"></div>
+            <div style="flex:1"><label>Hasta:</label><input type="date" id="fHasta" onchange="filterData()"></div>
+            <button onclick="clearFilter()" class="btn" style="background:#64748b; color:white; height:42px;">Limpiar</button>
         </div>
-        
-        <div class="filter-group">
-            <div><label>Desde:</label><input type="date" id="fDesde" onchange="filterData()"></div>
-            <div><label>Hasta:</label><input type="date" id="fHasta" onchange="filterData()"></div>
-            <div style="flex: 0.5;"><label>&nbsp;</label><button onclick="clearFilter()" class="btn btn-main" style="background:#64748b; padding:8px;">Limpiar</button></div>
-        </div>
-
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr><th>Fecha / Hora</th><th>Operación</th><th>Producto</th><th>Cant.</th><th>Referencia</th><th>Saldo Final</th></tr>
-                </thead>
-                <tbody id="hBody"></tbody>
-            </table>
-        </div>
+        <table>
+            <thead><tr><th>Fecha / Hora</th><th>Op.</th><th>Prod.</th><th>Cant.</th><th>Referencia</th><th>Saldo</th></tr></thead>
+            <tbody id="hBody"></tbody>
+        </table>
     </div>
 </div>
 
 <div id="modSim" class="modal">
     <div class="modal-c">
         <h3>📊 Análisis de Pedido Sugerido</h3>
-        <div style="background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--a);">
-            <p id="txtSug" style="font-weight:600; margin:0;"></p>
-        </div>
-        <label>Diesel a pedir (Gln):</label><input type="number" id="pD">
-        <label>Gasohol a pedir (Gln):</label><input type="number" id="pG">
-        <button onclick="doSend()" class="btn btn-main" style="background:var(--p)">📧 Enviar Pedido a Compras</button>
+        <p id="txtSug" style="font-weight:600; border-left:5px solid var(--a); padding-left:10px;"></p>
+        <label>Diesel a pedir:</label><input type="number" id="pD">
+        <label>Gasohol a pedir:</label><input type="number" id="pG">
+        <button onclick="doSend()" class="btn btn-main" style="background:var(--p)">📧 Enviar Pedido</button>
         <button onclick="clSim()" class="btn" style="width:100%; margin-top:10px; background:#e2e8f0;">Cerrar</button>
     </div>
 </div>
 
 <script>
-const URL_BASE = 'TU_URL_DE_APPS_SCRIPT_AQUI';
+const URL_BASE = 'TU_URL_AQUI'; // <--- PEGA TU URL DE GOOGLE SHEETS AQUI
 
-let local = { 
-    s: { d: 0, g: 0 }, 
-    h: [], // Historial completo de la nube
-    f: []  // Historial filtrado
-};
+let core = { s: { d: 0, g: 0 }, h: [], f: [] };
 
-function setFechaActual() {
-    const ahora = new Date();
-    ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
-    document.getElementById('inFecha').value = ahora.toISOString().slice(0, 16);
+function setNow() {
+    const n = new Date(); n.setMinutes(n.getMinutes() - n.getTimezoneOffset());
+    document.getElementById('inFecha').value = n.toISOString().slice(0, 16);
 }
 
 async function fLoad() {
     try {
         const r = await fetch(URL_BASE + '?t=' + new Date().getTime());
         const d = await r.json();
-        local.s.d = parseFloat(d.ultimoDiesel) || 0;
-        local.s.g = parseFloat(d.ultimoGasohol) || 0;
-        local.h = d.historialNube || [];
-        local.f = [...local.h]; // Al inicio, filtrado es igual a completo
-        fRender();
-        filterData(); // Aplicar filtros si existen al recargar
+        core.s.d = parseFloat(d.ultimoDiesel) || 0;
+        core.s.g = parseFloat(d.ultimoGasohol) || 0;
+        core.h = d.historialNube || [];
+        core.f = [...core.h];
+        renderStock();
+        filterData();
         document.getElementById('netStatus').innerText = "✅ Conectado";
     } catch (e) { 
         document.getElementById('netStatus').innerText = "⚠️ Reintentando...";
@@ -146,127 +114,73 @@ async function fLoad() {
     }
 }
 
-function fRender() {
-    const aD = (local.s.d / 1700).toFixed(1);
-    const aG = (local.s.g / 165).toFixed(1);
-    document.getElementById('vD').innerText = local.s.d.toLocaleString(undefined,{minimumFractionDigits:2});
-    document.getElementById('vG').innerText = local.s.g.toLocaleString(undefined,{minimumFractionDigits:2});
+function renderStock() {
+    const aD = (core.stock.d / 1700).toFixed(1);
+    const aG = (core.stock.g / 165).toFixed(1);
+    document.getElementById('vD').innerText = core.s.d.toLocaleString(undefined,{minimumFractionDigits:2});
+    document.getElementById('vG').innerText = core.s.g.toLocaleString(undefined,{minimumFractionDigits:2});
     document.getElementById('aD').innerText = aD + " días";
     document.getElementById('aG').innerText = aG + " días";
-
-    const mD = document.getElementById('mD'); mD.className = 'stock-item';
-    if(aD < 1) mD.classList.add('sem-crit'); else if(aD < 2) mD.classList.add('sem-alert'); else mD.classList.add('sem-ok');
-
-    const mG = document.getElementById('mG'); mG.className = 'stock-item';
-    if(aG < 1.5) mG.classList.add('sem-crit'); else if(aG < 3) mG.classList.add('sem-alert'); else mG.classList.add('sem-ok');
+    const bD = document.getElementById('mD'); bD.className = 'stock-item ' + (aD<1?'sem-crit':aD<2?'sem-alert':'sem-ok');
+    const bG = document.getElementById('mG'); bG.className = 'stock-item ' + (aG<1.5?'sem-crit':aG<3?'sem-alert':'sem-ok');
 }
 
 function filterData() {
-    const desde = document.getElementById('fDesde').value;
-    const hasta = document.getElementById('fHasta').value;
-
-    if (!desde && !hasta) {
-        local.f = [...local.h];
-        document.getElementById('rowCount').innerText = "Mostrando últimos 15";
-    } else {
-        local.f = local.h.filter(item => {
-            // Convertimos fecha de dd/mm/yyyy a objeto Date
-            const [d, m, y] = item.fecha.split(' ')[0].split('/');
-            const itemDate = new Date(y, m - 1, d);
-            
-            let match = true;
-            if (desde) match = match && (itemDate >= new Date(desde));
-            if (hasta) match = match && (itemDate <= new Date(hasta));
-            return match;
+    const d = document.getElementById('fDesde').value;
+    const h = document.getElementById('fHasta').value;
+    if(!d && !h) { core.f = [...core.h]; } 
+    else {
+        core.f = core.h.filter(x => {
+            const [fecha] = x.fecha.split(' ');
+            const [dia, mes, anio] = fecha.split('/');
+            const itemD = new Date(anio, mes-1, dia);
+            let m = true;
+            if(d) m = m && (itemD >= new Date(d));
+            if(h) m = m && (itemD <= new Date(h));
+            return m;
         });
-        document.getElementById('rowCount').innerText = `Encontrados: ${local.f.length} registros`;
     }
-
-    // Renderizar tabla con datos filtrados
-    document.getElementById('hBody').innerHTML = local.f.map(x => `
-        <tr>
-            <td>${x.fecha || '---'}</td>
-            <td><span style="font-weight:600; color:var(--p)">${x.operacion || '---'}</span></td>
-            <td>${x.prod || '---'}</td>
-            <td style="color:${x.operacion === 'SALIDA' ? 'var(--err)' : 'var(--ok)'}">${x.cant || '0'}</td>
-            <td>${x.ref || '---'}</td>
-            <td><b>${x.saldo || '0'}</b></td>
-        </tr>
-    `).join('');
+    document.getElementById('counter').innerText = core.f.length + " registros";
+    document.getElementById('hBody').innerHTML = core.f.map(x => `<tr><td>${x.fecha}</td><td><b>${x.operacion}</b></td><td>${x.prod}</td><td>${x.cant}</td><td>${x.ref}</td><td><b>${x.saldo}</b></td></tr>`).join('');
 }
 
 function clearFilter() {
-    document.getElementById('fDesde').value = "";
-    document.getElementById('fHasta').value = "";
-    filterData();
+    document.getElementById('fDesde').value = ""; document.getElementById('fHasta').value = ""; filterData();
 }
 
 async function doSave() {
     const b = document.getElementById('btnSave');
     const f = document.getElementById('inFecha').value;
     const m = document.getElementById('inMov').value; 
-    const p = document.getElementById('inProd').value;
     const c = parseFloat(document.getElementById('inCant').value);
-    if(!c || !f) return alert("Ingrese fecha y cantidad");
-
-    let nD = local.s.d; let nG = local.s.g;
-    let refHoja = "";
-
-    if(m === 'AJUSTE') {
-        if(p === 'DIESEL') nD = c; else nG = c;
-        refHoja = "VARILLADO";
-    } else {
-        if(p === 'DIESEL') nD = m === 'SALIDA' ? nD - c : nD + c; else nG = m === 'SALIDA' ? nG - c : nG + c;
-        refHoja = (m === 'SALIDA') ? "DESPACHO" : (document.getElementById('inRef').value || "INGRESO");
-    }
-
+    if(!c || !f) return alert("Datos incompletos");
+    let nD = core.s.d; let nG = core.s.g;
+    const p = document.getElementById('inProd').value;
+    if(m==='AJUSTE') { if(p==='DIESEL') nD=c; else nG=c; }
+    else { if(p==='DIESEL') nD = m==='SALIDA' ? nD-c : nD+c; else nG = m==='SALIDA' ? nG-c : nG+c; }
     b.disabled = true; b.innerText = "Guardando...";
-    await fetch(URL_BASE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ 
-        fechaManual: f, tipo: m, producto: p, cantidad: c, responsable: refHoja, 
-        stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) 
-    }) });
-    
-    setTimeout(() => { fLoad(); b.disabled = false; b.innerText = "Guardar Registro"; document.getElementById('inCant').value=""; setFechaActual(); }, 1500);
+    await fetch(URL_BASE, { method:'POST', mode:'no-cors', body: JSON.stringify({ fechaManual:f, tipo:m, producto:p, cantidad:c, responsable: (m==='SALIDA'?'DESPACHO':(document.getElementById('inRef').value||'INGRESO')), stockDiesel:nD.toFixed(2), stockGasohol:nG.toFixed(2) }) });
+    setTimeout(() => { fLoad(); b.disabled=false; b.innerText="Guardar Registro"; document.getElementById('inCant').value=""; setNow(); }, 1500);
+}
+
+function doExcel() {
+    const ws = XLSX.utils.json_to_sheet(core.f.map(x => ({ FECHA:x.fecha, OP:x.operacion, PROD:x.prod, CANT:x.cant, REF:x.ref, SALDO:x.saldo })));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Filtrado");
+    XLSX.writeFile(wb, `Reporte_ACP_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function opSim() {
     document.getElementById('modSim').style.display = 'block';
-    let sugD = local.s.d < 3400 ? 3000 : 0;
-    document.getElementById('txtSug').innerText = (sugD > 0) ? "⚠️ Nivel Preventivo: Pedir 3,000 gl Diesel hoy." : "✅ Niveles estables.";
-    document.getElementById('pD').value = sugD; document.getElementById('pG').value = local.s.g < 400 ? 500 : 0;
-}
-
-function doExcel() {
-    if (local.f.length === 0) return alert("No hay datos para exportar");
-    
-    // Solo exportamos lo que está en 'local.f' (los datos filtrados)
-    const dataToExport = local.f.map(x => ({
-        FECHA: x.fecha,
-        OPERACION: x.operacion,
-        PRODUCTO: x.prod,
-        CANTIDAD: x.cant,
-        REFERENCIA: x.ref,
-        SALDO: x.saldo
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Reporte Filtrado");
-    
-    const fileName = `Reporte_ACP_${new Date().toISOString().slice(0,10)}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+    let sD = core.s.d < 3400 ? 3000 : 0;
+    document.getElementById('txtSug').innerText = sD > 0 ? "⚠️ Alerta 3,400 gl: Pedir 3,000 gl hoy." : "✅ Stock seguro.";
+    document.getElementById('pD').value = sD; document.getElementById('pG').value = core.s.g < 400 ? 500 : 0;
 }
 
 function clSim() { document.getElementById('modSim').style.display = 'none'; }
-function chIng() { 
-    const m = document.getElementById('inMov').value;
-    document.getElementById('inExtra').style.display = (m === 'INGRESO') ? 'block' : 'none';
-    document.getElementById('lblCant').innerText = (m === 'AJUSTE') ? "Nueva medida física (Gln):" : "Cantidad (Gln):";
-}
+function chIng() { document.getElementById('inExtra').style.display = document.getElementById('inMov').value === 'INGRESO' ? 'block' : 'none'; }
+function doSend() { fetch(URL_BASE, { method:'POST', mode:'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: document.getElementById('pD').value, cantidadGasohol: document.getElementById('pG').value }) }).then(() => { alert("Enviado"); clSim(); }); }
 
-setFechaActual();
-fLoad();
-setInterval(fLoad, 60000); // Recarga automática cada minuto
+setNow(); fLoad(); setInterval(fLoad, 60000);
 </script>
 </body>
 </html>
