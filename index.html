@@ -140,30 +140,32 @@ function toggleCisterna() {
     document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none';
 }
 
-// 1. CARGA UNIVERSAL (Saldos + Historial de la Nube)
+// 1. CARGA UNIVERSAL (Saldos + Historial)
 async function cargarDatosDesdeNube() {
     const status = document.getElementById('statusCloud');
     try {
-        const response = await fetch(URL_GOOGLE_SHEETS);
+        const response = await fetch(URL_GOOGLE_SHEETS + '?t=' + new Date().getTime());
         const data = await response.json();
         if (data) {
-            db.stockFuel.diesel = parseFloat(data.ultimoDiesel);
-            db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
+            db.stockFuel.diesel = parseFloat(data.ultimoDiesel || 5000);
+            db.stockFuel.gasohol = parseFloat(data.ultimoGasohol || 1000);
             db.historial = data.historialNube || []; 
-            status.innerText = "✅ Datos en tiempo real sincronizados";
+            status.innerText = "✅ Sincronizado con Excel";
             status.style.color = "#10b981";
             actualizarUI();
         }
     } catch (e) {
         status.innerText = "⚠️ Modo Local: Verifique Internet";
         status.style.color = "#f59e0b";
-        // Carga respaldo local si falla la red
-        const local = JSON.parse(localStorage.getItem('fuel_v14_final'));
-        if(local) { db = local; actualizarUI(); }
+        const backup = JSON.parse(localStorage.getItem('fuel_v14_final'));
+        if(backup) { db = backup; actualizarUI(); }
     }
 }
 
-// 2. ENVÍO SEGÚN NUEVOS ENCABEZADOS
+// AUTO-REFRESCO: Ejecutar carga cada 30 segundos
+setInterval(cargarDatosDesdeNube, 30000);
+
+// 2. ENVÍO A LA NUBE
 function enviarANube(mov, prod, cant, ref) {
     fetch(URL_GOOGLE_SHEETS, {
         method: 'POST',
@@ -176,6 +178,8 @@ function enviarANube(mov, prod, cant, ref) {
             stockDiesel: db.stockFuel.diesel,
             stockGasohol: db.stockFuel.gasohol
         })
+    }).then(() => {
+        setTimeout(cargarDatosDesdeNube, 2000);
     });
 }
 
@@ -194,16 +198,14 @@ function procesarMovimiento() {
         db.stockFuel[prod] = Number((db.stockFuel[prod] + cant).toFixed(2));
     }
 
-    // Actualización local inmediata
-    const nuevaOp = {
+    db.historial.unshift({
         fecha: new Date().toLocaleString(),
         mov: mov.toUpperCase(),
         prod: prod.toUpperCase(),
         cant: cant.toFixed(2),
         ref: ref.toUpperCase(),
         saldo: db.stockFuel[prod]
-    };
-    db.historial.unshift(nuevaOp);
+    });
 
     enviarANube(mov.toUpperCase(), prod.toUpperCase(), cant.toFixed(2), ref.toUpperCase());
     actualizarUI();
