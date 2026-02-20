@@ -140,21 +140,53 @@ function actualizarUI() {
 
 function actualizarGrafico() {
     const ctx = document.getElementById('consumoChart').getContext('2d');
-    // Generar etiquetas para los últimos 7 días con formato DD/MM/YYYY
-    const labels = [];
+    const diasLabels = [];
+    const historial = db.historial;
+
+    // Generamos etiquetas de los últimos 7 días
     for (let i = 6; i >= 0; i--) {
         let d = new Date();
         d.setDate(d.getDate() - i);
-        labels.push(d.toLocaleDateString('es-PE')); // Formato compatible con el historial
+        // Usamos split(',')[0] para obtener solo la fecha sin la hora
+        diasLabels.push(d.toLocaleDateString('es-PE')); 
     }
 
-    const dataD = labels.map(l => 
-        db.historial.filter(h => h.fecha.includes(l) && h.mov.toUpperCase() === 'SALIDA' && h.prod === 'DIESEL')
-        .reduce((a, b) => a + parseFloat(b.cant), 0)
-    );
-    // ... repetir para Gasohol
-}
+    const dataD = diasLabels.map(fechaLabel => {
+        return historial
+            .filter(h => h.fecha.split(',')[0].trim() === fechaLabel.trim() && 
+                         h.mov.toUpperCase() === 'SALIDA' && 
+                         h.prod.toUpperCase() === 'DIESEL')
+            .reduce((acc, curr) => acc + parseFloat(curr.cant || 0), 0);
+    });
 
+    const dataG = diasLabels.map(fechaLabel => {
+        return historial
+            .filter(h => h.fecha.split(',')[0].trim() === fechaLabel.trim() && 
+                         h.mov.toUpperCase() === 'SALIDA' && 
+                         h.prod.toUpperCase() === 'GASOHOL')
+            .reduce((acc, curr) => acc + parseFloat(curr.cant || 0), 0);
+    });
+
+    if(chartObj) chartObj.destroy();
+    
+    chartObj = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: diasLabels.map(l => l.substring(0, 5)), // Solo DD/MM para que quepa bien
+            datasets: [
+                { label: 'Diesel', data: dataD, backgroundColor: '#2563eb' },
+                { label: 'Gasohol', data: dataG, backgroundColor: '#10b981' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, suggestedMax: 100 } // Evita el error de escala 1.0
+            }
+        }
+    });
+}
 function abrirSimulador() {
     document.getElementById('modalSimulador').style.display = 'block';
     let tD = db.historial.filter(h=>h.mov==='SALIDA'&&h.prod==='DIESEL').reduce((a,b)=>a+parseFloat(b.cant),0)/7;
@@ -177,4 +209,5 @@ cargarDatosDesdeNube(); setInterval(cargarDatosDesdeNube, 60000);
 </script>
 </body>
 </html>
+
 
