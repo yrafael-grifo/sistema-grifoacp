@@ -213,7 +213,8 @@ function clSim() { document.getElementById('modSim').style.display = 'none'; }
 function chIng() { document.getElementById('inExtra').style.display = document.getElementById('inMov').value === 'INGRESO' ? 'block' : 'none'; }
 function reM(i) { core.m[i].u = new Date().toISOString().split('T')[0]; renderManto(); }
 
-setNow(); fLoad(); setInterval(fLoad, 60000);
+setNow(); fLoad(); setInterval(fLoad, 30000);
 </script>
 </body>
 </html>
+
