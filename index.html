@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>SISTEMA ACP V15 - GESTION</title>
+<title>SISTEMA ACP V15 - CONTROL TOTAL</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root { --p:#1e293b; --a:#3b82f6; --d:#2563eb; --g:#10b981; --err:#ef4444; --warn:#f59e0b; --ok:#059669; }
@@ -11,10 +11,10 @@ body { font-family: sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
 .dash { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1350px; margin: auto; }
 .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--a); }
 .full { grid-column: span 2; }
-.btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; width: 100%; text-align: center; }
+.btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; width: 100%; text-align: center; display: block; text-decoration: none; }
 .btn-b { background: var(--a); margin-top: 10px; }
-.btn-s { background: #6366f1; width: auto; padding: 8px 15px; }
-.stock-box { padding: 15px; border-radius: 10px; text-align: center; background: #f8fafc; border: 3px solid #e2e8f0; }
+.btn-s { background: #6366f1; width: auto; padding: 8px 15px; display: inline-block; }
+.stock-box { padding: 15px; border-radius: 10px; text-align: center; background: #f8fafc; border: 3px solid #e2e8f0; transition: 0.5s; }
 .val { font-size: 2.2rem; font-weight: 800; display: block; }
 .sem-ok { border-color: var(--ok) !important; background: #f0fdf4 !important; }
 .sem-alert { border-color: var(--warn) !important; background: #fffbeb !important; }
@@ -24,36 +24,37 @@ table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9
 th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
 .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
 .modal-c { background: white; margin: 2% auto; padding: 25px; width: 90%; max-width: 700px; border-radius: 15px; }
+.sim-card { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
 input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
 </style>
 </head>
 <body>
 <div class="dash">
 <div class="card full" style="background: var(--p); color: white; display:flex; justify-content:space-between; align-items:center;">
-<div><h2 style="margin:0">⛽ Control ACP - V15</h2><small id="cloudStatus">Conectando...</small></div>
+<div><h2 style="margin:0">⛽ Control ACP - Gestión Operativa</h2><small id="cloudStatus">Conectando...</small></div>
 <div style="display:flex; gap:10px;">
 <button onclick="openSim()" class="btn btn-s">📊 Simulador</button>
 <button onclick="exportXLS()" class="btn btn-s" style="background:#107c41">📥 Excel</button>
 </div>
 </div>
 <div class="card">
-<h3>📝 Registro</h3>
-<select id="tMov" onchange="checkIngreso()"><option value="salida">Salida</option><option value="ingreso">Ingreso</option></select>
+<h3>📝 Registro de Operación</h3>
+<select id="tMov" onchange="checkIng()"><option value="salida">Salida (Despacho)</option><option value="ingreso">Ingreso (Cisterna)</option></select>
 <select id="tProd"><option value="DIESEL">Diesel</option><option value="GASOHOL">Gasohol</option></select>
 <input type="number" id="tCant" placeholder="Cantidad gl">
-<div id="extra" style="display:none;"><input type="text" id="tRef" placeholder="Referencia"></div>
-<button id="btnSave" class="btn btn-blue" style="background:var(--a)" onclick="saveData()">Guardar Operación</button>
+<div id="extra" style="display:none;"><input type="text" id="tRef" placeholder="Referencia / Placa"></div>
+<button id="btnSave" class="btn btn-b" onclick="saveData()">Guardar Operación</button>
 </div>
 <div class="card">
-<h3>🚚 Monitor Stock (24h)</h3>
+<h3>🚚 Monitor de Stock (Ciclos 24h)</h3>
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
 <div id="bD" class="stock-box"><b>Diesel</b><span id="vD" class="val" style="color:var(--d)">0.00</span><span id="aD" style="background:var(--p); color:white; padding:2px 6px; border-radius:4px; font-size:0.8em">---</span></div>
 <div id="bG" class="stock-box"><b>Gasohol</b><span id="vG" class="val" style="color:var(--g)">0.00</span><span id="aG" style="background:var(--p); color:white; padding:2px 6px; border-radius:4px; font-size:0.8em">---</span></div>
 </div>
 </div>
 <div class="card full">
-<h3>🛠 Mantenimiento y Filtros</h3>
-<table><thead><tr><th>Equipo</th><th>Filtro</th><th>Fecha</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="mantoBody"></tbody></table>
+<h3>🛠 Mantenimiento de Equipos</h3>
+<table><thead><tr><th>Equipo</th><th>Filtro</th><th>Última Fecha</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="mantoBody"></tbody></table>
 </div>
 <div class="card full">
 <h3>📝 Historial Reciente</h3>
@@ -62,23 +63,30 @@ input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; wi
 </div>
 <div id="mSim" class="modal">
 <div class="modal-c">
-<h2>📊 Planificación Pedido</h2>
+<h2>📊 Planificación de Pedido</h2>
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
-<div style="background:#f1f5f9; padding:10px; border-radius:8px"><b>Consumo Diario</b>
+<div class="sim-card"><b>Consumo Diario (24h)</b>
 
 
-Diesel: 1700 gl</div>
-<div style="background:#e0f2fe; padding:10px; border-radius:8px"><b>Autonomía</b>
+Diesel: 1,700 gl
 
 
-Diesel: <span id="sD">0</span> d</div>
+Gasohol: 165 gl</div>
+<div class="sim-card" style="background:#e0f2fe;"><b>Autonomía Real</b>
+
+
+Diesel: <span id="sD">0</span> d
+
+
+Gasohol: <span id="sG">0</span> d</div>
 </div>
 <div style="background:#f8fafc; padding:15px; border:2px solid var(--a); border-radius:8px">
-<p id="txtSug" style="font-weight:bold;"></p>
+<h3>🛒 Análisis Operativo</h3>
+<p id="txtSug" style="font-size:0.95em; line-height:1.4;"></p>
 <label>Diesel a pedir:</label><input type="number" id="pD">
 <label>Gasohol a pedir:</label><input type="number" id="pG">
 <button onclick="sendMail()" class="btn" style="background:var(--ok)">📧 Enviar Pedido a Compras</button>
-<p id="mailStatus" style="text-align:center; margin-top:10px;"></p>
+<p id="mailStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></p>
 </div>
 <button onclick="closeSim()" class="btn" style="background:#94a3b8; margin-top:10px;">Cerrar</button>
 </div>
@@ -101,17 +109,24 @@ document.getElementById('cloudStatus').innerText = "✅ Sincronizado";
 
 function render() {
 const aD = (core.stock.d / 1700).toFixed(1);
+const aG = (core.stock.g / 165).toFixed(1);
 document.getElementById('vD').innerText = core.stock.d.toFixed(2);
 document.getElementById('vG').innerText = core.stock.g.toFixed(2);
 document.getElementById('aD').innerText = aD + " d";
-const boxD = document.getElementById('bD'); boxD.className = 'stock-box';
-if(aD < 1.0) boxD.classList.add('sem-crit'); else if(aD < 2.0) boxD.classList.add('sem-alert'); else boxD.classList.add('sem-ok');
-const today = new Date();
+document.getElementById('aG').innerText = aG + " d";
+
+const bD = document.getElementById('bD'); bD.className = 'stock-box';
+if(aD < 1.0) bD.classList.add('sem-crit'); else if(aD < 2.0) bD.classList.add('sem-alert'); else bD.classList.add('sem-ok');
+
+const bG = document.getElementById('bG'); bG.className = 'stock-box';
+if(aG < 1.5) bG.classList.add('sem-crit'); else if(aG < 3.0) bG.classList.add('sem-alert'); else bG.classList.add('sem-ok');
+
+const hoy = new Date();
 document.getElementById('mantoBody').innerHTML = core.units.map((u, i) => {
-const diff = Math.floor((today - new Date(u.u)) / 86400000);
-return '<tr><td>'+u.id+'</td><td>'+u.f+'</td><td>'+u.u+'</td><td>'+diff+' d</td><td>OK</td><td><button onclick="resetManto('+i+')">Reset</button></td></tr>';
+    const diff = Math.floor((hoy - new Date(u.u)) / 86400000);
+    return '<tr><td>'+u.id+'</td><td>'+u.f+'</td><td>'+u.u+'</td><td>'+diff+' d</td><td>OK</td><td><button onclick="resetManto('+i+')">Reset</button></td></tr>';
 }).join('');
-document.getElementById('histBody').innerHTML = core.hist.slice(0,10).map(h => '<tr><td>'+h.fecha+'</td><td>'+h.mov+'</td><td>'+h.prod+'</td><td>'+h.cant+'</td><td>'+h.saldo+'</td></tr>').join('');
+document.getElementById('histBody').innerHTML = core.hist.slice(0,12).map(h => '<tr><td>'+h.fecha+'</td><td>'+h.mov+'</td><td>'+h.prod+'</td><td>'+h.cant+'</td><td>'+h.saldo+'</td></tr>').join('');
 }
 
 function saveData() {
@@ -127,30 +142,41 @@ fetch(URL_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo
 
 function openSim() {
 document.getElementById('mSim').style.display = 'block';
-const sD = core.stock.d; const c = 1700;
-const autoD = (sD / c).toFixed(1);
+const sD = core.stock.d; const sG = core.stock.g;
+const autoD = (sD / 1700).toFixed(1);
+const autoG = (sG / 165).toFixed(1);
 document.getElementById('sD').innerText = autoD;
-let sug = sD < 3400 ? 3000 : 0;
-document.getElementById('txtSug').innerHTML = sug > 0 ? '⚠️ Stock bajo. Pedir 3,000 gl hoy para cubrir mañana.' : '✅ Stock seguro.';
-document.getElementById('pD').value = sug;
+document.getElementById('sG').innerText = autoG;
+
+let sugD = sD < 3400 ? 3000 : 0;
+let sugG = sG < 400 ? 500 : 0;
+
+let txt = "";
+if(sugD > 0) txt += "⚠️ DIESEL: Stock bajo. Pedir 3,000 gl hoy.<br>";
+if(sugG > 0) txt += "⚠️ GASOHOL: Autonomía crítica. Pedir 500 gl.<br>";
+if(sugD == 0 && sugG == 0) txt = "✅ Todo en orden para las próximas 24h.";
+
+document.getElementById('txtSug').innerHTML = txt;
+document.getElementById('pD').value = sugD;
+document.getElementById('pG').value = sugG;
 }
 
 function sendMail() {
 const d = document.getElementById('pD').value;
 const g = document.getElementById('pG').value;
 const s = document.getElementById('mailStatus');
-s.innerText = "⏳ Enviando...";
-fetch(URL_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: d, cantidadGasohol: g, actualD: core.stock.d, actualG: core.stock.g }) }).then(() => { s.innerText = "✅ Enviado"; setTimeout(closeSim, 2000); });
+s.innerText = "⏳ Enviando orden..."; s.style.color = "blue";
+fetch(URL_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: d, cantidadGasohol: g, actualD: core.stock.d, actualG: core.stock.g }) }).then(() => { s.innerText = "✅ Orden enviada a Compras"; setTimeout(closeSim, 2500); });
 }
 
 function exportXLS() {
 const ws = XLSX.utils.json_to_sheet(core.hist.map(h => ({ FECHA: h.fecha, MOV: h.mov, PROD: h.prod, CANT: h.cant, REF: h.ref, SALDO: h.saldo })));
 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Historial");
-XLSX.writeFile(wb, "Reporte_ACP.xlsx");
+XLSX.writeFile(wb, "Reporte_ACP_V15.xlsx");
 }
 
 function closeSim() { document.getElementById('mSim').style.display = 'none'; }
-function checkIngreso() { document.getElementById('extra').style.display = document.getElementById('tMov').value === 'ingreso' ? 'block' : 'none'; }
+function checkIng() { document.getElementById('extra').style.display = document.getElementById('tMov').value === 'ingreso' ? 'block' : 'none'; }
 function resetManto(i) { core.units[i].u = new Date().toISOString().split('T')[0]; render(); }
 loadData();
 setInterval(loadData, 30000);
