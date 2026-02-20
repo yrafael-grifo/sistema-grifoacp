@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA DE CONTROL TOTAL V14 - SYNC FIX</title>
+    <title>SISTEMA DE CONTROL TOTAL V14 - FULL SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -24,6 +24,8 @@
         .bg-success { background: #dcfce7; color: var(--gasohol); }
         input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
         .stock-label { font-size: 1.8rem; font-weight: bold; display: block; margin: 5px 0; }
+        .text-diesel { color: var(--diesel); font-weight: bold; }
+        .text-gasohol { color: var(--gasohol); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -87,7 +89,7 @@
     </div>
 
     <div class="card full-width">
-        <h2>🛠 Plan de Mantenimiento y Filtros</h2>
+        <h2>🛠 Plan de Mantenimiento y Filtros (Ciclo 90 días)</h2>
         <table>
             <thead>
                 <tr><th>Unidad</th><th>Filtro</th><th>Última Fecha</th><th>Días Pasados</th><th>Estado</th><th>Acción</th></tr>
@@ -97,7 +99,7 @@
     </div>
 
     <div class="card full-width">
-        <h2>📝 Historial Sincronizado</h2>
+        <h2>📝 Historial Sincronizado (Multi-Dispositivo)</h2>
         <table>
             <thead>
                 <tr>
@@ -115,6 +117,7 @@
 </div>
 
 <script>
+// --- CONFIGURACIÓN ---
 const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec'; 
 
 let db = {
@@ -139,7 +142,6 @@ async function cargarDatosDesdeNube() {
         const response = await fetch(URL_GOOGLE_SHEETS + '?t=' + new Date().getTime());
         const data = await response.json();
         if (data) {
-            // AQUÍ ESTABA EL ERROR: Ahora leemos cada uno por su nombre
             db.stockFuel.diesel = parseFloat(data.ultimoDiesel);
             db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
             db.historial = data.historialNube || [];
@@ -212,10 +214,18 @@ function actualizarUI() {
         <td><button class="btn btn-blue btn-sm" onclick="hacerManto(${i})">Reset</button></td></tr>`;
     }).join('');
 
-    document.getElementById('historialBody').innerHTML = db.historial.slice(0, 15).map(h => `
-        <tr><td>${h.fecha}</td><td style="color:${h.mov==='INGRESO'?'green':'red'}"><b>${h.mov}</b></td>
-        <td style="color:${h.prod==='GASOHOL'?'var(--gasohol)':'var(--diesel)'}"><b>${h.prod}</b></td>
-        <td>${h.cant}</td><td>${h.ref}</td><td><b>${h.saldo}</b></td></tr>`).join('');
+    document.getElementById('historialBody').innerHTML = db.historial.map(h => {
+        const prodClass = h.prod === 'GASOHOL' ? 'text-gasohol' : 'text-diesel';
+        return `
+        <tr>
+            <td>${h.fecha}</td>
+            <td style="color:${h.mov==='INGRESO'?'green':'red'}"><b>${h.mov}</b></td>
+            <td class="${prodClass}">${h.prod}</td>
+            <td>${h.cant}</td>
+            <td>${h.ref}</td>
+            <td><b>${h.saldo}</b></td>
+        </tr>`;
+    }).join('');
 }
 
 function hacerManto(i) {
