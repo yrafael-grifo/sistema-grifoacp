@@ -3,94 +3,166 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>SISTEMA ACP V15 - CONTROL TOTAL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONTROL ACP - DASHBOARD OPERATIVO</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root { --p:#1e293b; --a:#3b82f6; --d:#2563eb; --g:#10b981; --err:#ef4444; --warn:#f59e0b; --ok:#059669; }
-body { font-family: sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
-.dash { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1350px; margin: auto; }
-.card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--a); }
-.full { grid-column: span 2; }
-.btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; width: 100%; text-align: center; display: block; text-decoration: none; }
-.btn-b { background: var(--a); margin-top: 10px; }
-.btn-s { background: #6366f1; width: auto; padding: 8px 15px; display: inline-block; }
-.stock-box { padding: 15px; border-radius: 10px; text-align: center; background: #f8fafc; border: 3px solid #e2e8f0; transition: 0.5s; }
-.val { font-size: 2.2rem; font-weight: 800; display: block; }
-.sem-ok { border-color: var(--ok) !important; background: #f0fdf4 !important; }
-.sem-alert { border-color: var(--warn) !important; background: #fffbeb !important; }
-.sem-crit { border-color: var(--err) !important; background: #fee2e2 !important; animation: blink 1.5s infinite; }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
-th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-.modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
-.modal-c { background: white; margin: 2% auto; padding: 25px; width: 90%; max-width: 700px; border-radius: 15px; }
-.sim-card { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
+:root {
+--bg: #f8fafc; --card: #ffffff; --primary: #0f172a; --accent: #3b82f6;
+--diesel: #2563eb; --gasohol: #10b981; --danger: #ef4444; --warning: #f59e0b; --success: #22c55e;
+--text-main: #1e293b; --text-muted: #64748b;
+}
+body { font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; line-height: 1.5; }
+.container { max-width: 1400px; margin: auto; display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
+
+    /* HEADER */
+    .header { grid-column: span 12; display: flex; justify-content: space-between; align-items: center; background: var(--primary); padding: 20px 32px; border-radius: 16px; color: white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .header h2 { margin: 0; font-size: 1.5rem; letter-spacing: -0.5px; }
+    .status-pill { background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; }
+    .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
+
+    /* CARDS */
+    .card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+    .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+    
+    /* MONITOR STOCK */
+    .stock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .stock-item { padding: 20px; border-radius: 14px; border: 2px solid #f1f5f9; text-align: center; transition: all 0.3s ease; }
+    .stock-item b { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+    .val { font-size: 2.5rem; font-weight: 800; display: block; margin: 10px 0; font-variant-numeric: tabular-nums; }
+    .autonomia { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; background: #f1f5f9; }
+
+    /* SEMAFORO ESTÉTICO */
+    .sem-ok { border-color: var(--success); background: #f0fdf4; }
+    .sem-alert { border-color: var(--warning); background: #fffbeb; }
+    .sem-crit { border-color: var(--danger); background: #fef2f2; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+    /* FORMS */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); }
+    select, input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1rem; transition: border 0.2s; box-sizing: border-box; }
+    select:focus, input:focus { outline: none; border-color: var(--accent); ring: 2px rgba(59, 130, 246, 0.2); }
+
+    /* BUTTONS */
+    .btn { cursor: pointer; padding: 12px 20px; border: none; border-radius: 10px; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary { background: var(--accent); color: white; width: 100%; }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+    .btn-ghost { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.2); }
+
+    /* TABLES */
+    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; }
+    th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid #e2e8f0; }
+    td { padding: 16px; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
+    tr:hover td { background: #f8fafc; }
+    .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
+
+    /* MODAL */
+    .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); }
+    .modal-content { background: white; margin: 5vh auto; padding: 32px; width: 90%; max-width: 600px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+
+    /* RESPONSIVE */
+    .col-4 { grid-column: span 4; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+    @media (max-width: 1024px) { .col-4, .col-8 { grid-column: span 12; } }
 </style>
 </head>
 <body>
-<div class="dash">
-<div class="card full" style="background: var(--p); color: white; display:flex; justify-content:space-between; align-items:center;">
-<div><h2 style="margin:0">⛽ Control ACP - Gestión Operativa</h2><small id="cloudStatus">Conectando...</small></div>
-<div style="display:flex; gap:10px;">
-<button onclick="openSim()" class="btn btn-s">📊 Simulador</button>
-<button onclick="exportXLS()" class="btn btn-s" style="background:#107c41">📥 Excel</button>
+
+<div class="container">
+<div class="header">
+<div>
+<h2>⛽ Grupo ACP</h2>
+<div class="status-pill"><div class="dot"></div> <span id="cloudStatus">Sincronizando base de datos...</span></div>
+</div>
+<div style="display:flex; gap:12px;">
+<button onclick="openSim()" class="btn btn-ghost">📊 Simulador</button>
+<button onclick="exportXLS()" class="btn btn-ghost" style="border-color:#22c55e66">📥 Descargar Excel</button>
 </div>
 </div>
-<div class="card">
-<h3>📝 Registro de Operación</h3>
-<select id="tMov" onchange="checkIng()"><option value="salida">Salida (Despacho)</option><option value="ingreso">Ingreso (Cisterna)</option></select>
-<select id="tProd"><option value="DIESEL">Diesel</option><option value="GASOHOL">Gasohol</option></select>
-<input type="number" id="tCant" placeholder="Cantidad gl">
-<div id="extra" style="display:none;"><input type="text" id="tRef" placeholder="Referencia / Placa"></div>
-<button id="btnSave" class="btn btn-b" onclick="saveData()">Guardar Operación</button>
+
+<div class="card col-4">
+    <div class="card-title">📝 Registro de Operación</div>
+    <div class="form-group">
+        <label>Tipo de Movimiento</label>
+        <select id="tMov" onchange="checkIng()"><option value="salida">Despacho (Salida)</option><option value="ingreso">Reabastecimiento (Ingreso)</option></select>
+    </div>
+    <div class="form-group">
+        <label>Producto</label>
+        <select id="tProd"><option value="DIESEL">Diesel B5 S50</option><option value="GASOHOL">Gasohol Regular</option></select>
+    </div>
+    <div class="form-group">
+        <label>Cantidad (Galones)</label>
+        <input type="number" id="tCant" placeholder="0.00">
+    </div>
+    <div id="extra" style="display:none;" class="form-group">
+        <label>Referencia (Placa / Factura)</label>
+        <input type="text" id="tRef" placeholder="Ej: ABC-123">
+    </div>
+    <button id="btnSave" class="btn btn-primary" onclick="saveData()">Registrar Operación</button>
 </div>
-<div class="card">
-<h3>🚚 Monitor de Stock (Ciclos 24h)</h3>
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-<div id="bD" class="stock-box"><b>Diesel</b><span id="vD" class="val" style="color:var(--d)">0.00</span><span id="aD" style="background:var(--p); color:white; padding:2px 6px; border-radius:4px; font-size:0.8em">---</span></div>
-<div id="bG" class="stock-box"><b>Gasohol</b><span id="vG" class="val" style="color:var(--g)">0.00</span><span id="aG" style="background:var(--p); color:white; padding:2px 6px; border-radius:4px; font-size:0.8em">---</span></div>
+
+<div class="card col-8">
+    <div class="card-title">🚚 Monitor de Inventario Real</div>
+    <div class="stock-grid">
+        <div id="bD" class="stock-item">
+            <b>Diesel B5 S50</b>
+            <span id="vD" class="val" style="color:var(--diesel)">0.00</span>
+            <div id="aD" class="autonomia">---</div>
+        </div>
+        <div id="bG" class="stock-item">
+            <b>Gasohol Regular</b>
+            <span id="vG" class="val" style="color:var(--gasohol)">0.00</span>
+            <div id="aG" class="autonomia">---</div>
+        </div>
+    </div>
+</div>
+
+<div class="card col-12">
+    <div class="card-title">🛠 Estado de Surtidores y Filtros</div>
+    <table>
+        <thead><tr><th>Equipo</th><th>Filtro</th><th>Última Fecha</th><th>Días Transcurridos</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody id="mantoBody"></tbody>
+    </table>
+</div>
+
+<div class="card col-12">
+    <div class="card-title">📝 Historial de Movimientos Recientes</div>
+    <table>
+        <thead><tr><th>Fecha / Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Saldo Final</th></tr></thead>
+        <tbody id="histBody"></tbody>
+    </table>
 </div>
 </div>
-<div class="card full">
-<h3>🛠 Mantenimiento de Equipos</h3>
-<table><thead><tr><th>Equipo</th><th>Filtro</th><th>Última Fecha</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="mantoBody"></tbody></table>
-</div>
-<div class="card full">
-<h3>📝 Historial Reciente</h3>
-<table><thead><tr><th>Fecha</th><th>Mov</th><th>Prod</th><th>Cant</th><th>Saldo</th></tr></thead><tbody id="histBody"></tbody></table>
-</div>
-</div>
+
 <div id="mSim" class="modal">
-<div class="modal-c">
-<h2>📊 Planificación de Pedido</h2>
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
-<div class="sim-card"><b>Consumo Diario (24h)</b>
-
-
-Diesel: 1,700 gl
-
-
-Gasohol: 165 gl</div>
-<div class="sim-card" style="background:#e0f2fe;"><b>Autonomía Real</b>
-
-
-Diesel: <span id="sD">0</span> d
-
-
-Gasohol: <span id="sG">0</span> d</div>
+<div class="modal-content">
+<h2 style="margin-top:0">📊 Análisis de Reposición</h2>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
+<div style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+<label>Consumo Diario Est.</label>
+<div style="font-size:0.9rem"><b>Diesel:</b> 1,700 gl</div>
+<div style="font-size:0.9rem"><b>Gasohol:</b> 165 gl</div>
 </div>
-<div style="background:#f8fafc; padding:15px; border:2px solid var(--a); border-radius:8px">
-<h3>🛒 Análisis Operativo</h3>
-<p id="txtSug" style="font-size:0.95em; line-height:1.4;"></p>
-<label>Diesel a pedir:</label><input type="number" id="pD">
-<label>Gasohol a pedir:</label><input type="number" id="pG">
-<button onclick="sendMail()" class="btn" style="background:var(--ok)">📧 Enviar Pedido a Compras</button>
-<p id="mailStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></p>
-</div>
-<button onclick="closeSim()" class="btn" style="background:#94a3b8; margin-top:10px;">Cerrar</button>
+<div style="background:#eff6ff; padding:16px; border-radius:12px; border:1px solid #bfdbfe;">
+<label>Autonomía Actual</label>
+<div style="font-size:0.9rem"><b>Diesel:</b> <span id="sD">0</span> días</div>
+<div style="font-size:0.9rem"><b>Gasohol:</b> <span id="sG">0</span> días</div>
 </div>
 </div>
+<div style="background:#f0f9ff; padding:20px; border-radius:16px; border:2px solid var(--accent);">
+<div id="txtSug" style="font-weight:700; color:var(--primary); margin-bottom:15px;"></div>
+<div class="form-group"><label>Diesel a pedir</label><input type="number" id="pD"></div>
+<div class="form-group"><label>Gasohol a pedir</label><input type="number" id="pG"></div>
+<button onclick="sendMail()" class="btn btn-primary" style="background:var(--primary)">📧 Enviar Pedido a Logística</button>
+<p id="mailStatus" style="text-align:center; margin-top:12px; font-weight:600;"></p>
+</div>
+<button onclick="closeSim()" class="btn" style="background:#f1f5f9; color:var(--text-main); margin-top:16px; width:100%">Cerrar Ventana</button>
+</div>
+</div>
+
 <script>
 const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec';
 let core = { stock: { d: 0, g: 0 }, hist: [], units: [{id:'Surtidor 1', f:'CF60', u:'2026-01-15'},{id:'Surtidor 2', f:'CF60', u:'2026-01-23'},{id:'Hipotanque', f:'CF100', u:'2025-12-10'},{id:'Gasohol', f:'MALLA', u:'2026-01-15'}] };
@@ -103,81 +175,89 @@ core.stock.d = parseFloat(d.ultimoDiesel);
 core.stock.g = parseFloat(d.ultimoGasohol);
 core.hist = d.historialNube || [];
 render();
-document.getElementById('cloudStatus').innerText = "✅ Sincronizado";
-} catch (e) { document.getElementById('cloudStatus').innerText = "⚠️ Error de Red"; }
+document.getElementById('cloudStatus').innerText = "Sistema Sincronizado";
+} catch (e) { document.getElementById('cloudStatus').innerText = "Error de conexión"; }
 }
 
 function render() {
 const aD = (core.stock.d / 1700).toFixed(1);
 const aG = (core.stock.g / 165).toFixed(1);
-document.getElementById('vD').innerText = core.stock.d.toFixed(2);
-document.getElementById('vG').innerText = core.stock.g.toFixed(2);
-document.getElementById('aD').innerText = aD + " d";
-document.getElementById('aG').innerText = aG + " d";
+document.getElementById('vD').innerText = core.stock.d.toLocaleString('en-US', {minimumFractionDigits: 2});
+document.getElementById('vG').innerText = core.stock.g.toLocaleString('en-US', {minimumFractionDigits: 2});
+document.getElementById('aD').innerText = aD + " días de stock";
+document.getElementById('aG').innerText = aG + " días de stock";
 
-const bD = document.getElementById('bD'); bD.className = 'stock-box';
-if(aD < 1.0) bD.classList.add('sem-crit'); else if(aD < 2.0) bD.classList.add('sem-alert'); else bD.classList.add('sem-ok');
+const bD = document.getElementById(&#39;bD&#39;); bD.className = &#39;stock-item&#39;;
+if(aD &lt; 1.0) bD.classList.add(&#39;sem-crit&#39;); else if(aD &lt; 2.0) bD.classList.add(&#39;sem-alert&#39;); else bD.classList.add(&#39;sem-ok&#39;);
 
-const bG = document.getElementById('bG'); bG.className = 'stock-box';
-if(aG < 1.5) bG.classList.add('sem-crit'); else if(aG < 3.0) bG.classList.add('sem-alert'); else bG.classList.add('sem-ok');
+const bG = document.getElementById(&#39;bG&#39;); bG.className = &#39;stock-item&#39;;
+if(aG &lt; 1.5) bG.classList.add(&#39;sem-crit&#39;); else if(aG &lt; 3.0) bG.classList.add(&#39;sem-alert&#39;); else bG.classList.add(&#39;sem-ok&#39;);
 
 const hoy = new Date();
-document.getElementById('mantoBody').innerHTML = core.units.map((u, i) => {
+document.getElementById(&#39;mantoBody&#39;).innerHTML = core.units.map((u, i) =&gt; {
     const diff = Math.floor((hoy - new Date(u.u)) / 86400000);
-    return '<tr><td>'+u.id+'</td><td>'+u.f+'</td><td>'+u.u+'</td><td>'+diff+' d</td><td>OK</td><td><button onclick="resetManto('+i+')">Reset</button></td></tr>';
-}).join('');
-document.getElementById('histBody').innerHTML = core.hist.slice(0,12).map(h => '<tr><td>'+h.fecha+'</td><td>'+h.mov+'</td><td>'+h.prod+'</td><td>'+h.cant+'</td><td>'+h.saldo+'</td></tr>').join('');
+    let color = diff &gt;= 90 ? &#39;var(--danger)&#39; : (diff &gt;= 80 ? &#39;var(--warning)&#39; : &#39;var(--success)&#39;);
+    return `&lt;tr&gt;&lt;td&gt;&lt;b&gt;${u.id}&lt;/b&gt;&lt;/td&gt;&lt;td&gt;&lt;code&gt;${u.f}&lt;/code&gt;&lt;/td&gt;&lt;td&gt;${u.u}&lt;/td&gt;&lt;td&gt;${diff} días&lt;/td&gt;
+    &lt;td&gt;&lt;span class=&quot;badge&quot; style=&quot;background:${color}22; color:${color}&quot;&gt;${diff&gt;=90?&#39;VENCIDO&#39;:&#39;OPTIMO&#39;}&lt;/span&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;button class=&quot;btn&quot; style=&quot;padding:4px 10px; font-size:0.7rem; background:#f1f5f9; width:auto;&quot; onclick=&quot;resetManto(${i})&quot;&gt;Reset&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;`;
+}).join(&#39;&#39;);
+
+document.getElementById(&#39;histBody&#39;).innerHTML = core.hist.slice(0,10).map(h =&gt; {
+    let color = h.mov === &#39;INGRESO&#39; ? &#39;var(--success)&#39; : &#39;var(--text-main)&#39;;
+    return `&lt;tr&gt;&lt;td&gt;${h.fecha}&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;badge&quot; style=&quot;background:#f1f5f9&quot;&gt;${h.mov}&lt;/span&gt;&lt;/td&gt;
+    &lt;td&gt;${h.prod}&lt;/td&gt;&lt;td style=&quot;color:${color}; font-weight:700&quot;&gt;${h.cant}&lt;/td&gt;&lt;td&gt;&lt;b&gt;${h.saldo}&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;`;
+}).join(&#39;&#39;);
 }
 
 function saveData() {
+const btn = document.getElementById('btnSave');
 const m = document.getElementById('tMov').value.toUpperCase();
 const p = document.getElementById('tProd').value;
 const c = parseFloat(document.getElementById('tCant').value);
-const r = document.getElementById('tRef').value || "DESPACHO";
-if(!c) return alert("Cantidad inválida");
+const r = document.getElementById('tRef').value || "OPERACION";
+if(!c || c <= 0) return alert("Por favor ingrese una cantidad válida");
+
 let nD = core.stock.d; let nG = core.stock.g;
-if(p === 'DIESEL') nD = m === 'SALIDA' ? nD - c : nD + c; else nG = m === 'SALIDA' ? nG - c : nG + c;
-fetch(URL_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: m, producto: p, cantidad: c, responsable: r, stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) }) }).then(() => { core.stock.d = nD; core.stock.g = nG; render(); setTimeout(loadData, 1500); });
+if(p === &#39;DIESEL&#39;) nD = m === &#39;SALIDA&#39; ? nD - c : nD + c; else nG = m === &#39;SALIDA&#39; ? nG - c : nG + c;
+
+btn.disabled = true; btn.innerText = &quot;Procesando...&quot;;
+fetch(URL_SCRIPT, { method: &#39;POST&#39;, mode: &#39;no-cors&#39;, body: JSON.stringify({ tipo: m, producto: p, cantidad: c, responsable: r, stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) }) })
+.then(() =&gt; { 
+    core.stock.d = nD; core.stock.g = nG; render(); 
+    setTimeout(() =&gt; { loadData(); btn.disabled = false; btn.innerText = &quot;Registrar Operación&quot;; document.getElementById(&#39;tCant&#39;).value = &quot;&quot;; }, 1500); 
+});
 }
 
 function openSim() {
 document.getElementById('mSim').style.display = 'block';
 const sD = core.stock.d; const sG = core.stock.g;
-const autoD = (sD / 1700).toFixed(1);
-const autoG = (sG / 165).toFixed(1);
-document.getElementById('sD').innerText = autoD;
-document.getElementById('sG').innerText = autoG;
-
+document.getElementById('sD').innerText = (sD / 1700).toFixed(1);
+document.getElementById('sG').innerText = (sG / 165).toFixed(1);
 let sugD = sD < 3400 ? 3000 : 0;
 let sugG = sG < 400 ? 500 : 0;
-
-let txt = "";
-if(sugD > 0) txt += "⚠️ DIESEL: Stock bajo. Pedir 3,000 gl hoy.<br>";
-if(sugG > 0) txt += "⚠️ GASOHOL: Autonomía crítica. Pedir 500 gl.<br>";
-if(sugD == 0 && sugG == 0) txt = "✅ Todo en orden para las próximas 24h.";
-
-document.getElementById('txtSug').innerHTML = txt;
+let txt = sugD > 0 || sugG > 0 ? "⚠️ SE RECOMIENDA REABASTECIMIENTO" : "✅ NIVELES DE STOCK SEGUROS";
+document.getElementById('txtSug').innerText = txt;
 document.getElementById('pD').value = sugD;
 document.getElementById('pG').value = sugG;
 }
 
 function sendMail() {
-const d = document.getElementById('pD').value;
-const g = document.getElementById('pG').value;
 const s = document.getElementById('mailStatus');
-s.innerText = "⏳ Enviando orden..."; s.style.color = "blue";
-fetch(URL_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: d, cantidadGasohol: g, actualD: core.stock.d, actualG: core.stock.g }) }).then(() => { s.innerText = "✅ Orden enviada a Compras"; setTimeout(closeSim, 2500); });
+s.innerText = "⏳ Enviando comunicación..."; s.style.color = "var(--accent)";
+fetch(URL_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: document.getElementById('pD').value, cantidadGasohol: document.getElementById('pG').value, actualD: core.stock.d, actualG: core.stock.g }) })
+.then(() => { s.innerText = "✅ Pedido enviado exitosamente"; setTimeout(closeSim, 2000); });
 }
 
 function exportXLS() {
-const ws = XLSX.utils.json_to_sheet(core.hist.map(h => ({ FECHA: h.fecha, MOV: h.mov, PROD: h.prod, CANT: h.cant, REF: h.ref, SALDO: h.saldo })));
-const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Historial");
-XLSX.writeFile(wb, "Reporte_ACP_V15.xlsx");
+const ws = XLSX.utils.json_to_sheet(core.hist);
+const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+XLSX.writeFile(wb, "Control_Combustible_ACP.xlsx");
 }
 
 function closeSim() { document.getElementById('mSim').style.display = 'none'; }
 function checkIng() { document.getElementById('extra').style.display = document.getElementById('tMov').value === 'ingreso' ? 'block' : 'none'; }
 function resetManto(i) { core.units[i].u = new Date().toISOString().split('T')[0]; render(); }
+
 loadData();
 setInterval(loadData, 30000);
 </script>
