@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA DE CONTROL TOTAL V14 - FULL HISTORIAL</title>
+    <title>SISTEMA DE CONTROL TOTAL V14 - CLOUD SYNC PRO</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -31,8 +31,8 @@
 <div class="dashboard">
     <div class="card full-width" style="background: var(--primary); color: white; border:none; display:flex; justify-content:space-between; align-items:center;">
         <div>
-            <h1 style="margin:0; font-size: 1.5rem;">⛽ Control de Suministro Pro (Reserva 24h)</h1>
-            <small id="statusCloud" style="color: #94a3b8;">⌛ Conectando con la nube...</small>
+            <h1 style="margin:0; font-size: 1.5rem;">⛽ Control de Suministro Pro (Sincronizado)</h1>
+            <small id="statusCloud" style="color: #94a3b8;">⌛ Conectando con servidor central...</small>
         </div>
         <button onclick="exportarExcel()" class="btn btn-excel">📥 Descargar Reporte EXCEL (.xlsx)</button>
     </div>
@@ -67,7 +67,7 @@
     </div>
 
     <div class="card">
-        <h2>🚚 Monitor de Pedidos (Reserva 24h)</h2>
+        <h2>🚚 Monitor de Pedidos (Nube)</h2>
         <div id="alertasContainer"></div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top:10px;">
             <div class="status-badge bg-success" style="text-align:center; padding:15px; border:1px solid #10b981">
@@ -99,11 +99,11 @@
     </div>
 
     <div class="card full-width">
-        <h2>📝 Historial de Ingresos y Salidas</h2>
+        <h2>📝 Historial Sincronizado (Multi-Dispositivo)</h2>
         <table>
             <thead>
                 <tr>
-                    <th>Fecha y Hora</th>
+                    <th>Fecha</th>
                     <th>Operación</th>
                     <th>Producto</th>
                     <th>Cantidad</th>
@@ -124,7 +124,7 @@ const CAP = { diesel: 5000, gasohol: 1000 };
 const STOCK_CRITICO = { diesel: 3000, gasohol: 450 };
 const DIAS_LIMITE = 90;
 
-let db = JSON.parse(localStorage.getItem('fuel_v14_final')) || {
+let db = {
     stockFuel: { diesel: 5000, gasohol: 1000 },
     stockFiltros: { cf60: 3, cf100: 2 }, 
     historial: [],
@@ -140,51 +140,42 @@ function toggleCisterna() {
     document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none';
 }
 
-// 1. CARGAR DATOS (Recupera ambos stocks al iniciar)
+// 1. CARGA UNIVERSAL (Saldos + Historial de la Nube)
 async function cargarDatosDesdeNube() {
     const status = document.getElementById('statusCloud');
     try {
         const response = await fetch(URL_GOOGLE_SHEETS);
         const data = await response.json();
         if (data) {
-            if (data.ultimoDiesel !== undefined) db.stockFuel.diesel = parseFloat(data.ultimoDiesel);
-            if (data.ultimoGasohol !== undefined) db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
-            status.innerText = "✅ Sincronizado con Excel";
+            db.stockFuel.diesel = parseFloat(data.ultimoDiesel);
+            db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
+            db.historial = data.historialNube || []; 
+            status.innerText = "✅ Datos en tiempo real sincronizados";
             status.style.color = "#10b981";
             actualizarUI();
         }
     } catch (e) {
-        status.innerText = "⚠️ Modo Local Activo";
+        status.innerText = "⚠️ Modo Local: Verifique Internet";
         status.style.color = "#f59e0b";
+        // Carga respaldo local si falla la red
+        const local = JSON.parse(localStorage.getItem('fuel_v14_final'));
+        if(local) { db = local; actualizarUI(); }
     }
 }
 
-// 2. ENVIAR DATOS (Sincroniza ambos productos en cada envío)
+// 2. ENVÍO SEGÚN NUEVOS ENCABEZADOS
 function enviarANube(mov, prod, cant, ref) {
-    if (!URL_GOOGLE_SHEETS || URL_GOOGLE_SHEETS.includes('AQUI')) return;
-    const status = document.getElementById('statusCloud');
-    if (status) status.innerText = "☁️ Sincronizando...";
-    
     fetch(URL_GOOGLE_SHEETS, {
         method: 'POST',
         mode: 'no-cors',
         body: JSON.stringify({
             tipo: mov,
-            cantidad: cant + " (" + prod + ")",
+            producto: prod,
+            cantidad: cant,
             responsable: ref,
             stockDiesel: db.stockFuel.diesel,
             stockGasohol: db.stockFuel.gasohol
         })
-    }).then(() => {
-        if (status) {
-            status.innerText = "✅ Sincronizado";
-            status.style.color = "#10b981";
-        }
-    }).catch(() => {
-        if (status) {
-            status.innerText = "❌ Error de conexión";
-            status.style.color = "#ef4444";
-        }
     });
 }
 
@@ -200,10 +191,10 @@ function procesarMovimiento() {
         if (db.stockFuel[prod] < cant) return alert("Stock insuficiente");
         db.stockFuel[prod] = Number((db.stockFuel[prod] - cant).toFixed(2));
     } else {
-        if ((db.stockFuel[prod] + cant) > (CAP[prod] + 0.1)) return alert("Excede capacidad");
         db.stockFuel[prod] = Number((db.stockFuel[prod] + cant).toFixed(2));
     }
 
+    // Actualización local inmediata
     const nuevaOp = {
         fecha: new Date().toLocaleString(),
         mov: mov.toUpperCase(),
@@ -212,12 +203,9 @@ function procesarMovimiento() {
         ref: ref.toUpperCase(),
         saldo: db.stockFuel[prod]
     };
-
     db.historial.unshift(nuevaOp);
-    
-    // Llamada a la nube sincronizada
-    enviarANube(mov.toUpperCase(), prod.toUpperCase(), cant.toFixed(2), ref.toUpperCase());
 
+    enviarANube(mov.toUpperCase(), prod.toUpperCase(), cant.toFixed(2), ref.toUpperCase());
     actualizarUI();
     document.getElementById('cant').value = "";
     document.getElementById('referencia').value = "";
@@ -238,7 +226,7 @@ function actualizarUI() {
     let alerts = "";
     if(db.stockFuel.diesel <= STOCK_CRITICO.diesel) alerts += `<div class="bg-danger" style="padding:10px; border-radius:8px; margin-bottom:8px;">⚠️ <b>DIESEL CRÍTICO</b></div>`;
     if(db.stockFuel.gasohol <= STOCK_CRITICO.gasohol) alerts += `<div class="bg-danger" style="padding:10px; border-radius:8px; margin-bottom:8px;">⚠️ <b>GASOHOL CRÍTICO</b></div>`;
-    document.getElementById('alertasContainer').innerHTML = alerts || "✅ Stock OK.";
+    document.getElementById('alertasContainer').innerHTML = alerts || "✅ Stock Sincronizado";
 
     let fAlert = "";
     if(db.stockFiltros.cf60 <= 2) fAlert += `<p class="status-badge bg-danger">⚠️ Reponer Filtros CF60</p>`;
