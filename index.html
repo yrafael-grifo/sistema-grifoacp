@@ -173,48 +173,75 @@ function actualizarUI() {
 function actualizarGrafico() {
     const ctx = document.getElementById('consumoChart').getContext('2d');
     const diasLabels = [];
-    const historial = db.historial;
+    const hoy = new Date();
 
-    // Generamos etiquetas de los últimos 7 días
+    // 1. Generar etiquetas de los últimos 7 días (DD/MM/YYYY)
     for (let i = 6; i >= 0; i--) {
         let d = new Date();
-        d.setDate(d.getDate() - i);
-        // Usamos split(',')[0] para obtener solo la fecha sin la hora
+        d.setDate(hoy.getDate() - i);
         diasLabels.push(d.toLocaleDateString('es-PE')); 
     }
 
+    // 2. Procesar datos del historial para Diesel
     const dataD = diasLabels.map(fechaLabel => {
-        return historial
-            .filter(h => h.fecha.split(',')[0].trim() === fechaLabel.trim() && 
-                         h.mov.toUpperCase() === 'SALIDA' && 
-                         h.prod.toUpperCase() === 'DIESEL')
+        return db.historial
+            .filter(h => {
+                // Limpiamos la fecha del historial para comparar solo el día
+                const fechaH = h.fecha.split(',')[0].trim(); 
+                return fechaH === fechaLabel && 
+                       h.mov.toUpperCase() === 'SALIDA' && 
+                       h.prod.toUpperCase() === 'DIESEL';
+            })
             .reduce((acc, curr) => acc + parseFloat(curr.cant || 0), 0);
     });
 
+    // 3. Procesar datos del historial para Gasohol
     const dataG = diasLabels.map(fechaLabel => {
-        return historial
-            .filter(h => h.fecha.split(',')[0].trim() === fechaLabel.trim() && 
-                         h.mov.toUpperCase() === 'SALIDA' && 
-                         h.prod.toUpperCase() === 'GASOHOL')
+        return db.historial
+            .filter(h => {
+                const fechaH = h.fecha.split(',')[0].trim();
+                return fechaH === fechaLabel && 
+                       h.mov.toUpperCase() === 'SALIDA' && 
+                       h.prod.toUpperCase() === 'GASOHOL';
+            })
             .reduce((acc, curr) => acc + parseFloat(curr.cant || 0), 0);
     });
 
+    // 4. Destruir gráfico previo para evitar el "desborde" visual
     if(chartObj) chartObj.destroy();
     
+    // 5. Crear nuevo gráfico
     chartObj = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: diasLabels.map(l => l.substring(0, 5)), // Solo DD/MM para que quepa bien
+            labels: diasLabels.map(l => l.substring(0, 5)), // Solo DD/MM para que se vea limpio
             datasets: [
-                { label: 'Diesel', data: dataD, backgroundColor: '#2563eb' },
-                { label: 'Gasohol', data: dataG, backgroundColor: '#10b981' }
+                { 
+                    label: 'Diesel (gl)', 
+                    data: dataD, 
+                    backgroundColor: '#2563eb',
+                    borderRadius: 5
+                },
+                { 
+                    label: 'Gasohol (gl)', 
+                    data: dataG, 
+                    backgroundColor: '#10b981',
+                    borderRadius: 5
+                }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
             scales: {
-                y: { beginAtZero: true, suggestedMax: 100 } // Evita el error de escala 1.0
+                y: { 
+                    beginAtZero: true,
+                    suggestedMax: 50, // Evita que la escala se quede en 1.0 si no hay datos
+                    title: { display: true, text: 'Galones' }
+                }
             }
         }
     });
@@ -241,6 +268,7 @@ cargarDatosDesdeNube(); setInterval(cargarDatosDesdeNube, 60000);
 </script>
 </body>
 </html>
+
 
 
 
