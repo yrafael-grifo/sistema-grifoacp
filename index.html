@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA DE CONTROL TOTAL V14 - CLOUD SYNC PRO</title>
+    <title>SISTEMA DE CONTROL TOTAL V14 - SYNC FIX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -31,10 +31,10 @@
 <div class="dashboard">
     <div class="card full-width" style="background: var(--primary); color: white; border:none; display:flex; justify-content:space-between; align-items:center;">
         <div>
-            <h1 style="margin:0; font-size: 1.5rem;">⛽ Control de Suministro Pro (Sincronizado)</h1>
-            <small id="statusCloud" style="color: #94a3b8;">⌛ Conectando con servidor central...</small>
+            <h1 style="margin:0; font-size: 1.5rem;">⛽ Control de Suministro Pro</h1>
+            <small id="statusCloud" style="color: #94a3b8;">⌛ Sincronizando Diesel y Gasohol...</small>
         </div>
-        <button onclick="exportarExcel()" class="btn btn-excel">📥 Descargar Reporte EXCEL (.xlsx)</button>
+        <button onclick="exportarExcel()" class="btn btn-excel">📥 Descargar Reporte EXCEL</button>
     </div>
 
     <div class="card">
@@ -46,8 +46,8 @@
         </select>
         <label>Producto</label>
         <select id="prod">
-            <option value="diesel">Diesel (Cap: 5000 gl)</option>
-            <option value="gasohol">Gasohol (Cap: 1000 gl)</option>
+            <option value="DIESEL">Diesel</option>
+            <option value="GASOHOL">Gasohol</option>
         </select>
         <label>Cantidad (Galones)</label>
         <input type="number" id="cant" step="0.01" placeholder="0.00">
@@ -73,12 +73,10 @@
             <div class="status-badge bg-success" style="text-align:center; padding:15px; border:1px solid #10b981">
                 <b>Diesel Actual</b>
                 <span id="sDiesel" class="stock-label">0</span>
-                <small>Reserva: 3000 gl</small>
             </div>
             <div class="status-badge bg-success" style="text-align:center; padding:15px; border:1px solid #10b981">
                 <b>Gasohol Actual</b>
                 <span id="sGasohol" class="stock-label">0</span>
-                <small>Reserva: 450 gl</small>
             </div>
         </div>
         <div style="margin-top:20px; padding: 12px; background: #f8fafc; border-radius: 8px;">
@@ -89,7 +87,7 @@
     </div>
 
     <div class="card full-width">
-        <h2>🛠 Plan de Mantenimiento y Filtros (Ciclo 90 días)</h2>
+        <h2>🛠 Plan de Mantenimiento y Filtros</h2>
         <table>
             <thead>
                 <tr><th>Unidad</th><th>Filtro</th><th>Última Fecha</th><th>Días Pasados</th><th>Estado</th><th>Acción</th></tr>
@@ -99,7 +97,7 @@
     </div>
 
     <div class="card full-width">
-        <h2>📝 Historial Sincronizado (Multi-Dispositivo)</h2>
+        <h2>📝 Historial Sincronizado</h2>
         <table>
             <thead>
                 <tr>
@@ -117,12 +115,7 @@
 </div>
 
 <script>
-// --- CONFIGURACIÓN ---
 const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec'; 
-
-const CAP = { diesel: 5000, gasohol: 1000 };
-const STOCK_CRITICO = { diesel: 3000, gasohol: 450 };
-const DIAS_LIMITE = 90;
 
 let db = {
     stockFuel: { diesel: 5000, gasohol: 1000 },
@@ -140,32 +133,28 @@ function toggleCisterna() {
     document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none';
 }
 
-// 1. CARGA UNIVERSAL (Saldos + Historial)
 async function cargarDatosDesdeNube() {
     const status = document.getElementById('statusCloud');
     try {
         const response = await fetch(URL_GOOGLE_SHEETS + '?t=' + new Date().getTime());
         const data = await response.json();
         if (data) {
-            db.stockFuel.diesel = parseFloat(data.ultimoDiesel || 5000);
-            db.stockFuel.gasohol = parseFloat(data.ultimoGasohol || 1000);
-            db.historial = data.historialNube || []; 
+            // AQUÍ ESTABA EL ERROR: Ahora leemos cada uno por su nombre
+            db.stockFuel.diesel = parseFloat(data.ultimoDiesel);
+            db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
+            db.historial = data.historialNube || [];
             status.innerText = "✅ Sincronizado con Excel";
             status.style.color = "#10b981";
             actualizarUI();
         }
     } catch (e) {
-        status.innerText = "⚠️ Modo Local: Verifique Internet";
-        status.style.color = "#f59e0b";
-        const backup = JSON.parse(localStorage.getItem('fuel_v14_final'));
-        if(backup) { db = backup; actualizarUI(); }
+        status.innerText = "⚠️ Modo Local";
     }
 }
 
-// AUTO-REFRESCO: Ejecutar carga cada 30 segundos
+// Auto-refresco cada 30 segundos
 setInterval(cargarDatosDesdeNube, 30000);
 
-// 2. ENVÍO A LA NUBE
 function enviarANube(mov, prod, cant, ref) {
     fetch(URL_GOOGLE_SHEETS, {
         method: 'POST',
@@ -178,39 +167,28 @@ function enviarANube(mov, prod, cant, ref) {
             stockDiesel: db.stockFuel.diesel,
             stockGasohol: db.stockFuel.gasohol
         })
-    }).then(() => {
-        setTimeout(cargarDatosDesdeNube, 2000);
-    });
+    }).then(() => setTimeout(cargarDatosDesdeNube, 2000));
 }
 
 function procesarMovimiento() {
     const mov = document.getElementById('tipoMov').value;
     const prod = document.getElementById('prod').value;
     const cant = parseFloat(document.getElementById('cant').value);
-    const ref = document.getElementById('referencia').value || (mov === 'salida' ? 'DESPACHO DIARIO' : 'INGRESO CISTERNA');
+    const ref = document.getElementById('referencia').value || (mov === 'salida' ? 'DESPACHO' : 'INGRESO');
 
     if (isNaN(cant) || cant <= 0) return alert("Cantidad inválida");
 
+    const pKey = prod.toLowerCase();
     if (mov === 'salida') {
-        if (db.stockFuel[prod] < cant) return alert("Stock insuficiente");
-        db.stockFuel[prod] = Number((db.stockFuel[prod] - cant).toFixed(2));
+        if (db.stockFuel[pKey] < cant) return alert("Stock insuficiente");
+        db.stockFuel[pKey] = Number((db.stockFuel[pKey] - cant).toFixed(2));
     } else {
-        db.stockFuel[prod] = Number((db.stockFuel[prod] + cant).toFixed(2));
+        db.stockFuel[pKey] = Number((db.stockFuel[pKey] + cant).toFixed(2));
     }
 
-    db.historial.unshift({
-        fecha: new Date().toLocaleString(),
-        mov: mov.toUpperCase(),
-        prod: prod.toUpperCase(),
-        cant: cant.toFixed(2),
-        ref: ref.toUpperCase(),
-        saldo: db.stockFuel[prod]
-    });
-
-    enviarANube(mov.toUpperCase(), prod.toUpperCase(), cant.toFixed(2), ref.toUpperCase());
     actualizarUI();
+    enviarANube(mov.toUpperCase(), prod.toUpperCase(), cant.toFixed(2), ref.toUpperCase());
     document.getElementById('cant').value = "";
-    document.getElementById('referencia').value = "";
 }
 
 function reponerFiltro(t) {
@@ -225,20 +203,10 @@ function actualizarUI() {
     document.getElementById('f60').innerText = db.stockFiltros.cf60;
     document.getElementById('f100').innerText = db.stockFiltros.cf100;
 
-    let alerts = "";
-    if(db.stockFuel.diesel <= STOCK_CRITICO.diesel) alerts += `<div class="bg-danger" style="padding:10px; border-radius:8px; margin-bottom:8px;">⚠️ <b>DIESEL CRÍTICO</b></div>`;
-    if(db.stockFuel.gasohol <= STOCK_CRITICO.gasohol) alerts += `<div class="bg-danger" style="padding:10px; border-radius:8px; margin-bottom:8px;">⚠️ <b>GASOHOL CRÍTICO</b></div>`;
-    document.getElementById('alertasContainer').innerHTML = alerts || "✅ Stock Sincronizado";
-
-    let fAlert = "";
-    if(db.stockFiltros.cf60 <= 2) fAlert += `<p class="status-badge bg-danger">⚠️ Reponer Filtros CF60</p>`;
-    if(db.stockFiltros.cf100 <= 1) fAlert += `<p class="status-badge bg-danger">⚠️ Reponer Filtros CF100</p>`;
-    document.getElementById('alertaFiltros').innerHTML = fAlert;
-
     const hoy = new Date();
     document.getElementById('mantoBody').innerHTML = db.equipos.map((e, i) => {
         const diff = Math.floor((hoy - new Date(e.ult)) / (1000*60*60*24));
-        let c = diff >= DIAS_LIMITE ? "bg-danger" : (diff >= 80 ? "bg-warning" : "bg-success");
+        let c = diff >= 90 ? "bg-danger" : (diff >= 80 ? "bg-warning" : "bg-success");
         return `<tr><td><b>${e.id}</b></td><td><code>${e.f}</code></td><td>${e.ult}</td><td>${diff} d</td>
         <td><span class="status-badge ${c}">${diff>=90?'VENCIDO':'OK'}</span></td>
         <td><button class="btn btn-blue btn-sm" onclick="hacerManto(${i})">Reset</button></td></tr>`;
@@ -280,7 +248,6 @@ function exportarExcel() {
     XLSX.writeFile(wb, "REPORTE_GRUPO_ACP.xlsx");
 }
 
-// Iniciar aplicación
 actualizarUI();
 cargarDatosDesdeNube();
 </script>
