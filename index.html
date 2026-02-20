@@ -2,99 +2,76 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA CONTROL PRO - SEMÁFORO ACTIVO</title>
+    <title>SISTEMA CONTROL ACP - V15 SEMÁFORO Y CORREO</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { 
             --primary: #1e293b; --accent: #3b82f6; --diesel: #2563eb; 
             --gasohol: #10b981; --danger: #ef4444; --warning: #f59e0b; --success: #059669;
         }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; margin: 0; padding: 20px; color: #334155; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
         .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1350px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--accent); }
         .full-width { grid-column: span 2; }
         
         .btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; transition: 0.2s; text-align: center; }
         .btn-blue { background: var(--accent); width: 100%; margin-top: 10px; }
-        .btn-sim { background: #6366f1; border: 1px solid #4f46e5; }
-        .btn-excel { background: #107c41; }
+        .btn-sim { background: #6366f1; }
         
-        .monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
-        .stock-box { padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0; background: #f8fafc; transition: 0.5s; }
-        .stock-label { font-size: 2.2rem; font-weight: 800; display: block; margin: 10px 0; }
+        .monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .stock-box { padding: 20px; border-radius: 10px; text-align: center; border: 3px solid #e2e8f0; background: #f8fafc; transition: 0.5s; }
+        .stock-label { font-size: 2.2rem; font-weight: 800; display: block; margin: 5px 0; }
         
-        /* ESTADOS DEL SEMÁFORO */
-        .autonomia-ok { border: 3px solid var(--success) !important; background: #f0fdf4 !important; }
-        .autonomia-alerta { border: 3px solid var(--warning) !important; background: #fffbeb !important; animation: suave 2s infinite; }
-        .autonomia-critica { border: 3px solid var(--danger) !important; background: #fee2e2 !important; animation: blink 1s infinite; }
-        
+        /* SEMÁFORO */
+        .autonomia-ok { border-color: var(--success) !important; background: #f0fdf4 !important; }
+        .autonomia-alerta { border-color: var(--warning) !important; background: #fffbeb !important; }
+        .autonomia-critica { border-color: var(--danger) !important; background: #fee2e2 !important; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        @keyframes suave { 0% { border-color: var(--warning); } 50% { border-color: #fef3c7; } 100% { border-color: var(--warning); } }
 
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
 
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 2% auto; padding: 30px; width: 90%; max-width: 800px; border-radius: 15px; overflow-y: auto; max-height: 90vh; }
-        .sim-card { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        
-        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
-        .badge-autonomia { background: var(--primary); color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; font-weight: bold; }
+        .modal-content { background: white; margin: 5% auto; padding: 30px; width: 90%; max-width: 650px; border-radius: 15px; }
+        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; margin-bottom: 10px; }
+        .badge-autonomia { background: var(--primary); color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
-    <div class="card full-width" style="background: var(--primary); color: white; border:none; display:flex; justify-content:space-between; align-items:center;">
-        <div>
-            <h1 style="margin:0; font-size: 1.4rem;">⛽ Sistema Control ACP - Operaciones</h1>
-            <small id="statusCloud" style="color: #94a3b8;">Sincronizado en tiempo real</small>
-        </div>
-        <div style="display:flex; gap:10px;">
-            <button onclick="abrirSimulador()" class="btn btn-sim">📊 Simulador de Pedido</button>
-            <button onclick="exportarExcel()" class="btn btn-excel">📥 Reporte Excel</button>
-        </div>
+    <div class="card full-width" style="background: var(--primary); color: white; display:flex; justify-content:space-between; align-items:center; border:none;">
+        <div><h2>⛽ Control ACP - Suministro</h2><small id="statusCloud">Sincronizando...</small></div>
+        <button onclick="abrirSimulador()" class="btn btn-sim">📊 Simulador de Pedido</button>
     </div>
 
     <div class="card">
-        <h3>📝 Registrar Despacho / Ingreso</h3>
-        <select id="tipoMov" onchange="toggleCisterna()">
-            <option value="salida">SALIDA (Despacho)</option>
-            <option value="ingreso">INGRESO (Cisterna)</option>
-        </select>
-        <select id="prod">
-            <option value="DIESEL">DIESEL</option>
-            <option value="GASOHOL">GASOHOL</option>
-        </select>
-        <input type="number" id="cant" step="0.01" placeholder="Cantidad en Galones">
-        <div id="extraData" style="display:none;">
-            <input type="text" id="referencia" placeholder="Placa o Nro Factura">
-        </div>
-        <button id="btnGuardar" class="btn btn-blue" onclick="procesarMovimiento()">Guardar y Sincronizar</button>
+        <h3>📝 Registro de Movimiento</h3>
+        <select id="tipoMov" onchange="toggleCisterna()"><option value="salida">SALIDA</option><option value="ingreso">INGRESO</option></select>
+        <select id="prod"><option value="DIESEL">DIESEL</option><option value="GASOHOL">GASOHOL</option></select>
+        <input type="number" id="cant" placeholder="Cantidad gl">
+        <div id="extraData" style="display:none;"><input type="text" id="referencia" placeholder="Placa / Referencia"></div>
+        <button id="btnGuardar" class="btn btn-blue" onclick="procesarMovimiento()">Guardar Operación</button>
     </div>
 
     <div class="card">
-        <h3>🚚 Estado de Tanques (Semáforo)</h3>
+        <h3>🚚 Monitor de Tanques</h3>
         <div class="monitor-grid">
-            <div id="boxDiesel" class="stock-box">
-                <b>Diesel (Tanque 5k)</b>
-                <span id="sDiesel" class="stock-label" style="color:var(--diesel)">0.00</span>
-                <span id="autonomiaD" class="badge-autonomia">---</span>
+            <div id="boxD" class="stock-box">
+                <b>Diesel (5k)</b><span id="sDiesel" class="stock-label" style="color:var(--diesel)">0.00</span>
+                <span id="autD" class="badge-autonomia">---</span>
             </div>
-            <div id="boxGasohol" class="stock-box">
-                <b>Gasohol (Tanque 1k)</b>
-                <span id="sGasohol" class="stock-label" style="color:var(--gasohol)">0.00</span>
-                <span id="autonomiaG" class="badge-autonomia">---</span>
+            <div id="boxG" class="stock-box">
+                <b>Gasohol (1k)</b><span id="sGasohol" class="stock-label" style="color:var(--gasohol)">0.00</span>
+                <span id="autG" class="badge-autonomia">---</span>
             </div>
         </div>
     </div>
 
     <div class="card full-width">
-        <h3>📝 Últimos Movimientos</h3>
+        <h3>📝 Historial</h3>
         <table>
-            <thead>
-                <tr><th>Fecha</th><th>Mov</th><th>Prod</th><th>Cant</th><th>Ref</th><th>Saldo</th></tr>
-            </thead>
+            <thead><tr><th>Fecha</th><th>Mov</th><th>Prod</th><th>Cant</th><th>Saldo</th></tr></thead>
             <tbody id="historialBody"></tbody>
         </table>
     </div>
@@ -102,93 +79,53 @@
 
 <div id="modalSimulador" class="modal">
     <div class="modal-content">
-        <h2 style="margin:0">📊 Simulador de Autonomía y Compra</h2>
-        <hr>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
-            <div class="sim-card">
-                <b>Consumo Promedio Ajustado</b><br>
-                Diesel: <span id="pD">0</span> gl/día<br>
-                Gasohol: <span id="pG">0</span> gl/día
-            </div>
-            <div class="sim-card" style="background:#e0f2fe;">
-                <b>Días de Operación Restante</b><br>
-                Diesel: <span id="dD">0</span> días<br>
-                Gasohol: <span id="dG">0</span> días
-            </div>
+        <h2>📊 Simulador y Orden de Pedido</h2>
+        <div style="background:#f1f5f9; padding:15px; border-radius:8px; margin-bottom:15px;">
+            <p>Promedio Diario: <b id="promD">1700</b> gl Diesel | <b id="promG">165</b> gl Gasohol</p>
+            <p>Autonomía: <b id="diasD">0</b> días Diesel | <b id="diasG">0</b> días Gasohol</p>
         </div>
-        <div class="sim-card" style="border:2px solid var(--gasohol); background:#f0fdf4;">
-            <h3>🛒 Orden de Pedido Sugerida</h3>
-            <label>Diesel a pedir (gl):</label><input type="number" id="pedD">
-            <label>Gasohol a pedir (gl):</label><input type="number" id="pedG">
-            <button onclick="enviarPedidoCorreo()" class="btn" style="background:var(--gasohol); width:100%;">📧 Enviar Pedido por Correo</button>
-            <p id="envioStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
-        </div>
-        <button onclick="cerrarSimulador()" class="btn" style="background:#94a3b8; width:100%;">Cerrar</button>
+        <label>Diesel a pedir:</label><input type="number" id="pedD">
+        <label>Gasohol a pedir:</label><input type="number" id="pedG">
+        <button onclick="enviarPedidoCorreo()" class="btn" style="background:var(--success); width:100%;">📧 Enviar Pedido a Compras</button>
+        <p id="envioStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
+        <button onclick="cerrarSimulador()" class="btn" style="background:#94a3b8; width:100%; margin-top:10px;">Cerrar</button>
     </div>
 </div>
 
 <script>
-const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec'; 
-
+const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec';
 let db = { stockFuel: { diesel: 0, gasohol: 0 }, historial: [] };
 
-// --- LÓGICA DE PROMEDIOS OPERATIVOS ---
 function obtenerPromedios() {
-    // Definimos tus consumos reales como base
-    const BASE_DIESEL = 1700; // Media de 1600-1800
-    const BASE_GASOHOL = 165;  // Media de 150-180
-
-    let totalD = 0, totalG = 0;
-    const salidas = db.historial.filter(h => h.mov === 'SALIDA');
-    
-    // Si hay datos en el historial, calculamos el promedio real de los últimos días
-    if (salidas.length >= 2) {
-        salidas.slice(0, 10).forEach(h => {
-            if(h.prod === 'DIESEL') totalD += parseFloat(h.cant);
-            else totalG += parseFloat(h.cant);
-        });
-        // Promediamos lo que haya (máximo 10 registros)
-        let realD = totalD / (salidas.filter(h => h.prod === 'DIESEL').length || 1);
-        let realG = totalG / (salidas.filter(h => h.prod === 'GASOHOL').length || 1);
-        
-        // Retornamos el mayor entre la base y el real para no quedarnos cortos
-        return { pD: Math.max(realD, BASE_DIESEL), pG: Math.max(realG, BASE_GASOHOL) };
-    }
-    
-    return { pD: BASE_DIESEL, pG: BASE_GASOHOL };
+    return { pD: 1700, pG: 165 }; // Tus consumos reales informados
 }
 
 function actualizarUI() {
-    const promedios = obtenerPromedios();
-    
-    // Calcular Autonomía en días
-    const autD = (db.stockFuel.diesel / promedios.pD).toFixed(1);
-    const autG = (db.stockFuel.gasohol / promedios.pG).toFixed(1);
+    const p = obtenerPromedios();
+    const ad = (db.stockFuel.diesel / p.pD).toFixed(1);
+    const ag = (db.stockFuel.gasohol / p.pG).toFixed(1);
 
-    // Actualizar Números
     document.getElementById('sDiesel').innerText = db.stockFuel.diesel.toFixed(2);
     document.getElementById('sGasohol').innerText = db.stockFuel.gasohol.toFixed(2);
-    document.getElementById('autonomiaD').innerText = autD + " días";
-    document.getElementById('autonomiaG').innerText = autG + " días";
+    document.getElementById('autD').innerText = ad + " días";
+    document.getElementById('autG').innerText = ag + " días";
 
-    // APLICAR SEMÁFORO DIESEL
-    const bD = document.getElementById('boxDiesel');
-    bD.className = 'stock-box'; // reset
-    if (autD <= 1.0) bD.classList.add('autonomia-critica');
-    else if (autD <= 2.0) bD.classList.add('autonomia-alerta');
-    else bD.classList.add('autonomia-ok');
+    // Semáforo Diesel
+    const boxD = document.getElementById('boxD');
+    boxD.className = 'stock-box';
+    if(ad < 1) boxD.classList.add('autonomia-critica');
+    else if(ad < 2) boxD.classList.add('autonomia-alerta');
+    else boxD.classList.add('autonomia-ok');
 
-    // APLICAR SEMÁFORO GASOHOL
-    const bG = document.getElementById('boxGasohol');
-    bG.className = 'stock-box'; // reset
-    if (autG <= 1.5) bG.classList.add('autonomia-critica');
-    else if (autG <= 3.0) bG.classList.add('autonomia-alerta');
-    else bG.classList.add('autonomia-ok');
+    // Semáforo Gasohol
+    const boxG = document.getElementById('boxG');
+    boxG.className = 'stock-box';
+    if(ag < 1.5) boxG.classList.add('autonomia-critica');
+    else if(ag < 3) boxG.classList.add('autonomia-alerta');
+    else boxG.classList.add('autonomia-ok');
 
-    // Historial
     document.getElementById('historialBody').innerHTML = db.historial.slice(0, 10).map(h => `
-        <tr><td>${h.fecha}</td><td><b>${h.mov}</b></td>
-        <td>${h.prod}</td><td>${h.cant}</td><td>${h.ref}</td><td><b>${h.saldo}</b></td></tr>`).join('');
+        <tr><td>${h.fecha}</td><td><b>${h.mov}</b></td><td>${h.prod}</td><td>${h.cant}</td><td><b>${h.saldo}</b></td></tr>`).join('');
 }
 
 function procesarMovimiento() {
@@ -198,7 +135,7 @@ function procesarMovimiento() {
     const cant = parseFloat(document.getElementById('cant').value);
     const ref = document.getElementById('referencia').value || "DESPACHO";
 
-    if (isNaN(cant) || cant <= 0) return alert("Cantidad inválida");
+    if (!cant || cant <= 0) return alert("Cantidad inválida");
 
     let nD = db.stockFuel.diesel;
     let nG = db.stockFuel.gasohol;
@@ -206,10 +143,8 @@ function procesarMovimiento() {
     if (prod === 'DIESEL') nD = (mov === 'SALIDA') ? nD - cant : nD + cant;
     else nG = (mov === 'SALIDA') ? nG - cant : nG + cant;
 
-    nD = Math.round(nD * 100) / 100;
-    nG = Math.round(nG * 100) / 100;
-
-    if (nD < 0 || nG < 0) return alert("Stock insuficiente");
+    nD = Math.round(nD * 100) / 100; nG = Math.round(nG * 100) / 100;
+    if(nD < 0 || nG < 0) return alert("Stock insuficiente");
 
     btn.disabled = true;
     fetch(URL_GOOGLE_SHEETS, {
@@ -222,6 +157,35 @@ function procesarMovimiento() {
     });
 }
 
+function enviarPedidoCorreo() {
+    const d = document.getElementById('pedD').value;
+    const g = document.getElementById('pedG').value;
+    const status = document.getElementById('envioStatus');
+
+    if(!d && !g) return alert("Ingrese cantidades");
+    
+    status.innerText = "⏳ Enviando pedido...";
+    status.style.color = "blue";
+
+    fetch(URL_GOOGLE_SHEETS, {
+        method: 'POST', mode: 'no-cors',
+        body: JSON.stringify({
+            tipo: "PEDIDO_SIMULADO",
+            cantidadDiesel: d || 0,
+            cantidadGasohol: g || 0,
+            actualD: db.stockFuel.diesel,
+            actualG: db.stockFuel.gasohol
+        })
+    }).then(() => {
+        status.innerText = "✅ Pedido enviado correctamente";
+        status.style.color = "green";
+        setTimeout(() => { status.innerText = ""; cerrarSimulador(); }, 3000);
+    }).catch(() => {
+        status.innerText = "❌ Error al enviar";
+        status.style.color = "red";
+    });
+}
+
 async function cargarDatosDesdeNube() {
     try {
         const res = await fetch(URL_GOOGLE_SHEETS + '?t=' + new Date().getTime());
@@ -230,28 +194,24 @@ async function cargarDatosDesdeNube() {
         db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
         db.historial = data.historialNube || [];
         actualizarUI();
-    } catch (e) { console.error("Error de red"); }
+        document.getElementById('statusCloud').innerText = "✅ Sincronizado";
+    } catch (e) { document.getElementById('statusCloud').innerText = "⚠️ Error de red"; }
 }
 
 function abrirSimulador() {
     document.getElementById('modalSimulador').style.display = 'block';
     const p = obtenerPromedios();
-    document.getElementById('pD').innerText = p.pD.toFixed(0);
-    document.getElementById('pG').innerText = p.pG.toFixed(0);
-    document.getElementById('dD').innerText = (db.stockFuel.diesel / p.pD).toFixed(1);
-    document.getElementById('dG').innerText = (db.stockFuel.gasohol / p.pG).toFixed(1);
-    
-    // Sugerencia para llenar tanque
+    document.getElementById('diasD').innerText = (db.stockFuel.diesel / p.pD).toFixed(1);
+    document.getElementById('diasG').innerText = (db.stockFuel.gasohol / p.pG).toFixed(1);
     document.getElementById('pedD').value = (5000 - db.stockFuel.diesel).toFixed(0);
     document.getElementById('pedG').value = (1000 - db.stockFuel.gasohol).toFixed(0);
 }
 
 function cerrarSimulador() { document.getElementById('modalSimulador').style.display = 'none'; }
 function toggleCisterna() { document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none'; }
-function exportarExcel() { /* Lógica estándar XLSX */ }
 
 cargarDatosDesdeNube();
-setInterval(cargarDatosDesdeNube, 30000); // Refresco cada 30 seg
+setInterval(cargarDatosDesdeNube, 30000);
 </script>
 </body>
 </html>
