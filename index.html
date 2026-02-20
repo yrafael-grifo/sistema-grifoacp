@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA DE CONTROL TOTAL V14 - FULL ANALYTICS</title>
+    <title>SISTEMA DE CONTROL TOTAL V14 - FULL SYNC PRO</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -11,27 +11,27 @@
         .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1300px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--accent); }
         .full-width { grid-column: span 2; }
-        .btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; }
+        .btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; transition: 0.2s; }
         .btn-blue { background: var(--accent); width: 100%; }
         .btn-sim { background: #6366f1; }
         .monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .stock-box { padding: 15px; border-radius: 10px; text-align: center; background: #f8fafc; border: 1px solid #e2e8f0; transition: 0.3s; }
-        .stock-label { font-size: 2rem; font-weight: 800; display: block; }
+        .stock-box { padding: 15px; border-radius: 10px; text-align: center; background: #f8fafc; border: 1px solid #e2e8f0; }
+        .stock-label { font-size: 2.2rem; font-weight: 800; display: block; margin: 5px 0; }
         .alerta-critica { background: #fee2e2 !important; border: 2px solid var(--danger) !important; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.8); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 2% auto; padding: 25px; width: 90%; max-width: 700px; border-radius: 15px; }
-        .sim-card { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
-        input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; margin-bottom: 10px; }
+        .modal-content { background: white; margin: 2% auto; padding: 25px; width: 90%; max-width: 750px; border-radius: 15px; }
+        .sim-card { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
     <div class="card full-width" style="background: var(--primary); color: white; display:flex; justify-content:space-between; align-items:center; border:none;">
-        <div><h2 style="margin:0">⛽ Control Total Pro - Grupo ACP</h2><small id="statusCloud">Sincronizando...</small></div>
+        <div><h2 style="margin:0">⛽ Control de Suministro Pro</h2><small id="statusCloud">Cargando...</small></div>
         <div style="display:flex; gap:10px;">
             <button onclick="abrirSimulador()" class="btn btn-sim">📊 Simulador / Pedido</button>
             <button onclick="exportarExcel()" class="btn" style="background:#107c41">📥 Excel</button>
@@ -39,28 +39,31 @@
     </div>
 
     <div class="card">
-        <h3>📝 Registro</h3>
-        <select id="tipoMov" onchange="toggleCisterna()"><option value="salida">Salida</option><option value="ingreso">Ingreso</option></select>
+        <h3>📝 Registro de Operación</h3>
+        <label>Tipo Movimiento</label>
+        <select id="tipoMov" onchange="toggleCisterna()"><option value="salida">Salida (Despacho)</option><option value="ingreso">Ingreso (Cisterna)</option></select>
+        <label>Producto</label>
         <select id="prod"><option value="DIESEL">Diesel</option><option value="GASOHOL">Gasohol</option></select>
-        <input type="number" id="cant" step="0.01" placeholder="Cantidad gl">
-        <input type="text" id="referencia" placeholder="Referencia" style="display:none;">
+        <label>Cantidad (gl)</label>
+        <input type="number" id="cant" step="0.01" placeholder="0.00">
+        <div id="extraData" style="display:none;"><label>Referencia:</label><input type="text" id="referencia" placeholder="Ej: Placa / Factura"></div>
         <button class="btn btn-blue" onclick="procesarMovimiento()">Guardar Operación</button>
     </div>
 
     <div class="card">
-        <h3>🚚 Monitor Stock (Nube)</h3>
+        <h3>🚚 Monitor de Stock (Nube)</h3>
         <div class="monitor-grid">
-            <div id="boxD" class="stock-box"><b>Diesel</b><span id="sDiesel" class="stock-label" style="color:var(--diesel)">0</span><small id="autD">-- días</small></div>
-            <div id="boxG" class="stock-box"><b>Gasohol</b><span id="sGasohol" class="stock-label" style="color:var(--gasohol)">0</span><small id="autG">-- días</small></div>
+            <div id="boxD" class="stock-box"><b>Diesel Actual</b><span id="sDiesel" class="stock-label" style="color:var(--diesel)">0</span><small id="autD">-- días</small></div>
+            <div id="boxG" class="stock-box"><b>Gasohol Actual</b><span id="sGasohol" class="stock-label" style="color:var(--gasohol)">0</span><small id="autG">-- días</small></div>
         </div>
     </div>
 
-    <div class="card full-width"><h3>📈 Consumo Semanal (Galones)</h3><canvas id="consumoChart" height="80"></canvas></div>
+    <div class="card full-width"><h3>📈 Consumo Semanal de Combustible</h3><canvas id="consumoChart" height="100"></canvas></div>
 
     <div class="card full-width">
-        <h3>📝 Historial Reciente</h3>
+        <h3>📝 Historial Reciente Sincronizado</h3>
         <table>
-            <thead><tr><th>Fecha</th><th>Mov</th><th>Producto</th><th>Cant</th><th>Ref</th><th>Saldo</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Operación</th><th>Producto</th><th>Cant.</th><th>Ref.</th><th>Saldo</th></tr></thead>
             <tbody id="historialBody"></tbody>
         </table>
     </div>
@@ -68,16 +71,17 @@
 
 <div id="modalSimulador" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between;"><h2>📊 Simulador y Orden de Pedido</h2><button onclick="cerrarSimulador()" style="border:none; background:none; font-size:1.5rem; cursor:pointer;">✕</button></div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <div class="sim-card"><b>Promedio Diario</b><br>Diesel: <span id="pD">0</span> gl<br>Gasohol: <span id="pG">0</span> gl</div>
-            <div class="sim-card" style="background:#e0f2fe;"><b>Autonomía</b><br>Diesel: <span id="dD">0</span> días<br>Gasohol: <span id="dG">0</span> días</div>
+        <div style="display:flex; justify-content:space-between;"><h2>📊 Simulador de Pedido</h2><button onclick="cerrarSimulador()" style="border:none; background:none; font-size:1.5rem; cursor:pointer;">✕</button></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:15px 0;">
+            <div class="sim-card"><b>Consumo Promedio</b><br>Diesel: <span id="pD">0</span> gl/d<br>Gasohol: <span id="pG">0</span> gl/d</div>
+            <div class="sim-card" style="background:#e0f2fe;"><b>Autonomía Real</b><br>Diesel: <span id="dD">0</span> días<br>Gasohol: <span id="dG">0</span> días</div>
         </div>
-        <div class="sim-card" style="border:2px solid var(--success);">
+        <div class="sim-card" style="border:2px solid var(--gasohol); background:#f0fdf4;">
             <h3>🛒 Confirmar Cantidades para Pedido</h3>
-            <label>Diesel:</label><input type="number" id="pedD"><label>Gasohol:</label><input type="number" id="pedG">
-            <button onclick="enviarPedidoCorreo()" class="btn" style="background:var(--success); width:100%;">📧 Enviar Pedido a Compras (Rafael / Montenegro)</button>
-            <p id="envioStatus" style="text-align:center; margin-top:5px;"></p>
+            <label>Diesel a pedir:</label><input type="number" id="pedD">
+            <label>Gasohol a pedir:</label><input type="number" id="pedG">
+            <button onclick="enviarPedidoCorreo()" class="btn" style="background:var(--gasohol); width:100%;">📧 Enviar Pedido (Rafael / Montenegro)</button>
+            <p id="envioStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
         </div>
     </div>
 </div>
@@ -97,7 +101,7 @@ async function cargarDatosDesdeNube() {
             db.historial = data.historialNube || [];
             actualizarUI(); actualizarGrafico();
         }
-    } catch (e) { document.getElementById('statusCloud').innerText = "Modo Local"; }
+    } catch (e) { document.getElementById('statusCloud').innerText = "⚠️ Modo Local"; }
 }
 
 function actualizarUI() {
@@ -106,35 +110,48 @@ function actualizarUI() {
     document.getElementById('boxD').classList.toggle('alerta-critica', db.stockFuel.diesel < 2500);
     document.getElementById('boxG').classList.toggle('alerta-critica', db.stockFuel.gasohol < 250);
     
-    // Autonomía rápida
-    let totalD = 0, totalG = 0;
-    db.historial.filter(h => h.mov === 'SALIDA').slice(0,10).forEach(h => { if(h.prod==='DIESEL') totalD += parseFloat(h.cant); else totalG += parseFloat(h.cant); });
-    let pD = (totalD/5); let pG = (totalG/5);
-    document.getElementById('autD').innerText = pD > 0 ? (db.stockFuel.diesel/pD).toFixed(1) + " días" : "--";
-    document.getElementById('autG').innerText = pG > 0 ? (db.stockFuel.gasohol/pG).toFixed(1) + " días" : "--";
+    // Autonomía rápida en monitor
+    let tD = db.historial.filter(h=>h.mov==='SALIDA'&&h.prod==='DIESEL').reduce((a,b)=>a+parseFloat(b.cant),0)/7;
+    let tG = db.historial.filter(h=>h.mov==='SALIDA'&&h.prod==='GASOHOL').reduce((a,b)=>a+parseFloat(b.cant),0)/7;
+    document.getElementById('autD').innerText = tD > 0 ? (db.stockFuel.diesel/tD).toFixed(1) + " días" : "--";
+    document.getElementById('autG').innerText = tG > 0 ? (db.stockFuel.gasohol/tG).toFixed(1) + " días" : "--";
 
-    document.getElementById('historialBody').innerHTML = db.historial.slice(0, 10).map(h => `<tr><td>${h.fecha}</td><td>${h.mov}</td><td style="color:${h.prod==='GASOHOL'?'green':'blue'}">${h.prod}</td><td>${h.cant}</td><td>${h.ref}</td><td>${h.saldo}</td></tr>`).join('');
-}
-
-function actualizarGrafico() {
-    const ctx = document.getElementById('consumoChart').getContext('2d');
-    const labels = [...new Set(db.historial.slice(0,30).map(h => h.fecha.split(',')[0]))].reverse().slice(-7);
-    const datasetD = labels.map(l => db.historial.filter(h => h.fecha.includes(l) && h.mov==='SALIDA' && h.prod==='DIESEL').reduce((a,b)=>a+parseFloat(b.cant),0));
-    const datasetG = labels.map(l => db.historial.filter(h => h.fecha.includes(l) && h.mov==='SALIDA' && h.prod==='GASOHOL').reduce((a,b)=>a+parseFloat(b.cant),0));
-    if(chartObj) chartObj.destroy();
-    chartObj = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{label:'Diesel', data:datasetD, backgroundColor:'#2563eb'},{label:'Gasohol', data:datasetG, backgroundColor:'#10b981'}]}, options: { responsive: true }});
+    document.getElementById('historialBody').innerHTML = db.historial.slice(0, 10).map(h => `<tr><td>${h.fecha}</td><td style="color:${h.mov==='INGRESO'?'green':'red'}"><b>${h.mov}</b></td><td style="color:${h.prod==='GASOHOL'?'green':'blue'}">${h.prod}</td><td>${h.cant}</td><td>${h.ref}</td><td>${h.saldo}</td></tr>`).join('');
 }
 
 function procesarMovimiento() {
     const mov = document.getElementById('tipoMov').value.toUpperCase();
     const prod = document.getElementById('prod').value;
     const cant = parseFloat(document.getElementById('cant').value);
-    const ref = document.getElementById('referencia').value || "S/R";
-    if (!cant) return alert("Ingrese cantidad");
-    let nD = db.stockFuel.diesel, nG = db.stockFuel.gasohol;
-    if(prod==='DIESEL') nD = (mov==='SALIDA'?nD-cant:nD+cant); else nG = (mov==='SALIDA'?nG-cant:nG+cant);
-    fetch(URL_GOOGLE_SHEETS, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: mov, producto: prod, cantidad: cant, responsable: ref, stockDiesel: nD, stockGasohol: nG })}).then(() => setTimeout(cargarDatosDesdeNube, 1500));
+    const ref = document.getElementById('referencia').value || "DESPACHO DIARIO";
+
+    if (!cant || cant <= 0) return alert("Ingrese cantidad válida");
+
+    let nD = db.stockFuel.diesel; let nG = db.stockFuel.gasohol;
+
+    if(prod === 'DIESEL') nD = (mov === 'SALIDA') ? nD - cant : nD + cant;
+    else nG = (mov === 'SALIDA') ? nG - cant : nG + cant;
+
+    if(nD < 0 || nG < 0) return alert("Error: El stock no puede ser negativo.");
+
+    fetch(URL_GOOGLE_SHEETS, { 
+        method: 'POST', mode: 'no-cors', 
+        body: JSON.stringify({ tipo: mov, producto: prod, cantidad: cant, responsable: ref.toUpperCase(), stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) })
+    }).then(() => {
+        db.stockFuel.diesel = nD; db.stockFuel.gasohol = nG;
+        actualizarUI();
+        setTimeout(cargarDatosDesdeNube, 2000);
+    });
     document.getElementById('cant').value = "";
+}
+
+function actualizarGrafico() {
+    const ctx = document.getElementById('consumoChart').getContext('2d');
+    const labels = [...new Set(db.historial.slice(0,40).map(h => h.fecha.split(',')[0]))].reverse().slice(-7);
+    const dataD = labels.map(l => db.historial.filter(h => h.fecha.includes(l) && h.mov==='SALIDA' && h.prod==='DIESEL').reduce((a,b)=>a+parseFloat(b.cant),0));
+    const dataG = labels.map(l => db.historial.filter(h => h.fecha.includes(l) && h.mov==='SALIDA' && h.prod==='GASOHOL').reduce((a,b)=>a+parseFloat(b.cant),0));
+    if(chartObj) chartObj.destroy();
+    chartObj = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{label:'Diesel', data:dataD, backgroundColor:'#2563eb'},{label:'Gasohol', data:dataG, backgroundColor:'#10b981'}]}, options: { responsive: true, maintainAspectRatio: false }});
 }
 
 function abrirSimulador() {
@@ -148,15 +165,15 @@ function abrirSimulador() {
 }
 
 function enviarPedidoCorreo() {
-    if(!confirm("¿Enviar pedido formal?")) return;
+    if(!confirm("¿Deseas enviar formalmente este pedido a compras?")) return;
     const s = document.getElementById('envioStatus'); s.innerText = "Enviando...";
     fetch(URL_GOOGLE_SHEETS, { method:'POST', mode:'no-cors', body: JSON.stringify({ tipo:"PEDIDO_SIMULADO", cantidadDiesel: document.getElementById('pedD').value, cantidadGasohol: document.getElementById('pedG').value, actualD: db.stockFuel.diesel, actualG: db.stockFuel.gasohol })})
-    .then(() => { s.innerText = "✅ Enviado"; setTimeout(cerrarSimulador, 2000); });
+    .then(() => { s.innerText = "✅ Pedido Enviado Correctamente"; setTimeout(cerrarSimulador, 3000); });
 }
 
 function cerrarSimulador() { document.getElementById('modalSimulador').style.display = 'none'; }
-function toggleCisterna() { document.getElementById('referencia').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none'; }
-function exportarExcel() { /* Lógica estándar XLSX */ }
+function toggleCisterna() { document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none'; }
+function exportarExcel() { /* Lógica XLSX */ }
 cargarDatosDesdeNube(); setInterval(cargarDatosDesdeNube, 60000);
 </script>
 </body>
