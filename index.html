@@ -100,7 +100,7 @@ Gasohol: <span id="dG">0</span> días</div>
 </div>
 </div>
 <script>
-const URL_GOOGLE_SHEETS = '';
+const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec';
 let db = { stockFuel: { diesel: 0, gasohol: 0 }, historial: [], equipos: [{ id: 'Surtidor 1 Diesel', f: 'CF60', ult: '2026-01-15' }, { id: 'Surtidor 2 Diesel', f: 'CF60', ult: '2026-01-23' }, { id: 'Hipotanque (Móvil)', f: 'CF100', ult: '2025-12-10' }, { id: 'Surtidor Gasohol', f: 'MALLA', ult: '2026-01-15' }] };
 async function cargarDatosDesdeNube() {
 try {
@@ -178,3 +178,4 @@ setInterval(cargarDatosDesdeNube, 30000);
 </script>
 </body>
 </html>
+
