@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA DE CONTROL TOTAL V15 - WHATSAPP INTEGRATED</title>
+    <title>SISTEMA DE CONTROL TOTAL V15 - FULL INTEGRATED</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #1e293b; --accent: #3b82f6; --diesel: #2563eb; --gasohol: #10b981; --danger: #ef4444; --warning: #f59e0b; --success: #059669; --whatsapp: #25d366; }
+        :root { --primary: #1e293b; --accent: #3b82f6; --diesel: #2563eb; --gasohol: #10b981; --danger: #ef4444; --warning: #f59e0b; --success: #059669; }
         body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
         .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1350px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--accent); }
@@ -14,7 +14,6 @@
         .btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; transition: 0.2s; }
         .btn-blue { background: var(--accent); width: 100%; margin-top: 10px; }
         .btn-sim { background: #6366f1; }
-        .btn-ws { background: var(--whatsapp); display: none; width: 100%; margin-top: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; }
         
         .monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .stock-box { padding: 15px; border-radius: 10px; text-align: center; background: #f8fafc; border: 3px solid #e2e8f0; transition: 0.5s; }
@@ -93,8 +92,7 @@
             <h3>🛒 Confirmar Cantidades para Pedido</h3>
             <label>Diesel a pedir:</label><input type="number" id="pedD">
             <label>Gasohol a pedir:</label><input type="number" id="pedG">
-            <button id="btnMail" onclick="enviarPedidoCorreo()" class="btn" style="background:var(--accent); width:100%;">📧 1. Enviar Pedido por Correo</button>
-            <a id="btnWA" href="#" target="_blank" class="btn btn-ws">📲 2. Confirmar por WhatsApp</a>
+            <button onclick="enviarPedidoCorreo()" class="btn" style="background:var(--gasohol); width:100%;">📧 Enviar Pedido (Rafael / Montenegro)</button>
             <p id="envioStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
         </div>
     </div>
@@ -153,7 +151,7 @@ function actualizarUI() {
         <td><button class="btn btn-blue" style="padding:5px 10px; margin:0; width:auto;" onclick="hacerManto(${i})">Reset</button></td></tr>`;
     }).join('');
 
-    document.getElementById('historialBody').innerHTML = db.historial.slice(0, 10).map(h => `
+    document.getElementById('historialBody').innerHTML = db.historial.slice(0, 15).map(h => `
         <tr><td>${h.fecha}</td><td style="color:${h.mov==='INGRESO'?'green':'red'}"><b>${h.mov}</b></td>
         <td style="color:${h.prod==='GASOHOL'?'green':'blue'}">${h.prod}</td>
         <td>${h.cant}</td><td>${h.ref}</td><td><b>${h.saldo}</b></td></tr>`).join('');
@@ -190,7 +188,6 @@ function procesarMovimiento() {
 
 function abrirSimulador() {
     document.getElementById('modalSimulador').style.display = 'block';
-    document.getElementById('btnWA').style.display = 'none'; // Ocultar hasta enviar correo
     document.getElementById('dD').innerText = (db.stockFuel.diesel / 1700).toFixed(1);
     document.getElementById('dG').innerText = (db.stockFuel.gasohol / 165).toFixed(1);
     document.getElementById('pedD').value = Math.max(0, (5000 - db.stockFuel.diesel)).toFixed(0);
@@ -201,28 +198,40 @@ function enviarPedidoCorreo() {
     const d = document.getElementById('pedD').value;
     const g = document.getElementById('pedG').value;
     const s = document.getElementById('envioStatus');
-    const btnWA = document.getElementById('btnWA');
     if(!d && !g) return alert("Ingrese cantidades");
     
-    s.innerText = "⏳ Enviando correo..."; s.style.color = "blue";
+    s.innerText = "⏳ Enviando pedido..."; s.style.color = "blue";
     fetch(URL_GOOGLE_SHEETS, {
         method: 'POST', mode: 'no-cors',
         body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: d, cantidadGasohol: g, actualD: db.stockFuel.diesel, actualG: db.stockFuel.gasohol })
     }).then(() => {
-        s.innerText = "📧 Correo enviado. ¡Confirma por WhatsApp!"; s.style.color = "green";
-        
-        // PREPARAR ENLACE DE WHATSAPP
-        const nro = "51989580425"; // <--- CAMBIA ESTO POR EL NRO DE RAFAEL
-        const texto = encodeURIComponent(`*SOLICITUD DE COMPRA - GRUPO ACP*\n\n⛽ *Diesel:* ${d} gl\n⛽ *Gasohol:* ${g} gl\n\n*Stock Actual:*\n- Diesel: ${db.stockFuel.diesel} gl\n- Gasohol: ${db.stockFuel.gasohol} gl`);
-        btnWA.href = `https://wa.me/${nro}?text=${texto}`;
-        btnWA.style.display = 'flex';
+        s.innerText = "✅ Pedido enviado correctamente"; s.style.color = "green";
+        setTimeout(() => { s.innerText = ""; cerrarSimulador(); }, 2500);
     });
+}
+
+// FUNCION EXCEL HABILITADA
+function exportarExcel() {
+    if (db.historial.length === 0) return alert("No hay datos para exportar");
+    
+    const dataReporte = db.historial.map(h => ({
+        "FECHA": h.fecha,
+        "OPERACIÓN": h.mov,
+        "PRODUCTO": h.prod,
+        "CANTIDAD (gl)": h.cant,
+        "REFERENCIA": h.ref,
+        "SALDO FINAL": h.saldo
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataReporte);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Historial_Combustible");
+    XLSX.writeFile(wb, `Reporte_ACP_${new Date().toLocaleDateString()}.xlsx`);
 }
 
 function cerrarSimulador() { document.getElementById('modalSimulador').style.display = 'none'; }
 function toggleCisterna() { document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none'; }
 function hacerManto(i) { db.equipos[i].ult = new Date().toISOString().split('T')[0]; actualizarUI(); }
-function exportarExcel() { /* Lógica XLSX */ }
 
 cargarDatosDesdeNube();
 setInterval(cargarDatosDesdeNube, 30000);
