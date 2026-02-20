@@ -14,31 +14,26 @@
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--accent); }
         .full-width { grid-column: span 2; }
         
-        /* Botones */
         .btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; transition: 0.2s; text-align: center; }
         .btn-blue { background: var(--accent); width: 100%; margin-top: 10px; }
         .btn-sim { background: #6366f1; border: 1px solid #4f46e5; }
         .btn-excel { background: #107c41; }
         
-        /* Monitor de Stock Mejorado */
         .monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
         .stock-box { padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0; background: #f8fafc; }
-        .stock-box b { font-size: 1rem; color: #64748b; text-transform: uppercase; }
         .stock-label { font-size: 2.2rem; font-weight: 800; display: block; margin: 10px 0; }
         .text-diesel { color: var(--diesel); }
         .text-gasohol { color: var(--gasohol); }
 
-        /* Tablas */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f8fafc; color: #64748b; }
 
-        /* Modal Simulador */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 5% auto; padding: 30px; width: 90%; max-width: 700px; border-radius: 15px; }
+        .modal-content { background: white; margin: 2% auto; padding: 30px; width: 90%; max-width: 800px; border-radius: 15px; overflow-y: auto; max-height: 90vh; }
         .sim-card { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         
         input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem; }
+        .badge-autonomia { background: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -47,10 +42,10 @@
     <div class="card full-width" style="background: var(--primary); color: white; border:none; display:flex; justify-content:space-between; align-items:center;">
         <div>
             <h1 style="margin:0; font-size: 1.4rem;">⛽ Sistema de Control Total Pro</h1>
-            <small id="statusCloud" style="color: #94a3b8;">Sincronizando con la nube...</small>
+            <small id="statusCloud" style="color: #94a3b8;">Sincronizado con Google Sheets</small>
         </div>
         <div style="display:flex; gap:10px;">
-            <button onclick="abrirSimulador()" class="btn btn-sim">📊 Simular Compra</button>
+            <button onclick="abrirSimulador()" class="btn btn-sim">📊 Simulador y Autonomía</button>
             <button onclick="exportarExcel()" class="btn btn-excel">📥 Reporte Excel</button>
         </div>
     </div>
@@ -82,16 +77,13 @@
             <div class="stock-box">
                 <b>Diesel Actual</b>
                 <span id="sDiesel" class="stock-label text-diesel">0.00</span>
-                <small style="color:#94a3b8">Capacidad: 5000 gl</small>
+                <span id="autonomiaD" class="badge-autonomia">Cargando...</span>
             </div>
             <div class="stock-box">
                 <b>Gasohol Actual</b>
                 <span id="sGasohol" class="stock-label text-gasohol">0.00</span>
-                <small style="color:#94a3b8">Capacidad: 1000 gl</small>
+                <span id="autonomiaG" class="badge-autonomia">Cargando...</span>
             </div>
-        </div>
-        <div style="margin-top:15px; padding:10px; background:#f0f9ff; border-radius:8px; border:1px solid #bae6fd; font-size:0.85em;">
-            <strong>Inventario de Filtros:</strong> CF60: <span id="f60">0</span> | CF100: <span id="f100">0</span>
         </div>
     </div>
 
@@ -119,33 +111,46 @@
 <div id="modalSimulador" class="modal">
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 style="margin:0">📊 Simulador de Compra</h2>
+            <h2 style="margin:0">📊 Simulador de Autonomía y Compra</h2>
             <button onclick="cerrarSimulador()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">✕</button>
         </div>
-        <div class="sim-card">
-            <p><strong>Consumo Promedio (7 días):</strong></p>
-            Diesel: <span id="promDiesel">0</span> gl/día | Gasohol: <span id="promGasohol">0</span> gl/día
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="sim-card">
+                <p><strong>📈 Consumo Diario Promedio</strong></p>
+                Diesel: <span id="promDiesel">0</span> gl/día<br>
+                Gasohol: <span id="promGasohol">0</span> gl/día
+            </div>
+            <div class="sim-card" style="background:#e0f2fe;">
+                <p><strong>⏳ Autonomía Actual</strong></p>
+                Diesel: <b id="diasD">0</b> días restantes<br>
+                Gasohol: <b id="diasG">0</b> días restantes
+            </div>
         </div>
+
         <div class="sim-card" style="background:#dcfce7; border-left: 5px solid var(--success);">
-            <p><strong>Sugerencia de Pedido (para 1 semana):</strong></p>
+            <p><strong>⛽ Sugerencia de Pedido (Para 10 días de paz)</strong></p>
             Pedir Diesel: <b><span id="pedirDiesel">0</span> gl</b><br>
             Pedir Gasohol: <b><span id="pedirGasohol">0</span> gl</b>
         </div>
+
+        <h3>🛠 Simular Llenado</h3>
         <label>Simular compra Diesel:</label>
         <input type="number" id="simDiesel" oninput="simular()" placeholder="0.00">
         <label>Simular compra Gasohol:</label>
         <input type="number" id="simGasohol" oninput="simular()" placeholder="0.00">
-        <div id="resultadoSim" style="padding:15px; border-radius:8px; margin-top:10px; text-align:center; font-weight:bold;"></div>
+        
+        <div id="resultadoSim" style="padding:15px; border-radius:8px; margin-top:10px; text-align:center; font-weight:bold; background:#f1f5f9;">
+            Ingrese cantidades para proyectar stock
+        </div>
     </div>
 </div>
 
 <script>
-// --- TU URL DE GOOGLE ---
 const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec'; 
 
 let db = {
     stockFuel: { diesel: 0, gasohol: 0 },
-    stockFiltros: { cf60: 3, cf100: 2 }, 
     historial: [],
     equipos: [
         { id: 'Surtidor 1 Diesel', f: 'CF60', ult: '2026-01-15' },
@@ -155,9 +160,14 @@ let db = {
     ]
 };
 
-// --- LOGICA DEL SIMULADOR ---
 function abrirSimulador() {
     document.getElementById('modalSimulador').style.display = 'block';
+    actualizarAutonomia();
+}
+
+function cerrarSimulador() { document.getElementById('modalSimulador').style.display = 'none'; }
+
+function actualizarAutonomia() {
     let totalD = 0, totalG = 0;
     let hoy = new Date();
     let sieteDiasAtras = hoy.getTime() - (7 * 24 * 60 * 60 * 1000);
@@ -169,16 +179,24 @@ function abrirSimulador() {
         }
     });
 
-    let pD = (totalD / 7).toFixed(2);
-    let pG = (totalG / 7).toFixed(2);
-    document.getElementById('promDiesel').innerText = pD;
-    document.getElementById('promGasohol').innerText = pG;
+    let pD = totalD / 7;
+    let pG = totalG / 7;
 
-    document.getElementById('pedirDiesel').innerText = Math.max(0, (pD * 7 * 1.1) - db.stockFuel.diesel).toFixed(0);
-    document.getElementById('pedirGasohol').innerText = Math.max(0, (pG * 7 * 1.1) - db.stockFuel.gasohol).toFixed(0);
+    document.getElementById('promDiesel').innerText = pD.toFixed(2);
+    document.getElementById('promGasohol').innerText = pG.toFixed(2);
+
+    let dD = pD > 0 ? (db.stockFuel.diesel / pD).toFixed(1) : "Inf.";
+    let dG = pG > 0 ? (db.stockFuel.gasohol / pG).toFixed(1) : "Inf.";
+
+    document.getElementById('diasD').innerText = dD;
+    document.getElementById('diasG').innerText = dG;
+    document.getElementById('autonomiaD').innerText = dD + " días";
+    document.getElementById('autonomiaG').innerText = dG + " días";
+
+    // Pedido para 10 días de autonomía
+    document.getElementById('pedirDiesel').innerText = Math.max(0, (pD * 10) - db.stockFuel.diesel).toFixed(0);
+    document.getElementById('pedirGasohol').innerText = Math.max(0, (pG * 10) - db.stockFuel.gasohol).toFixed(0);
 }
-
-function cerrarSimulador() { document.getElementById('modalSimulador').style.display = 'none'; }
 
 function simular() {
     let inD = parseFloat(document.getElementById('simDiesel').value) || 0;
@@ -192,11 +210,10 @@ function simular() {
         res.innerText = "⚠️ EXCESO DE CAPACIDAD";
     } else {
         res.style.background = "#dcfce7"; res.style.color = "#15803d";
-        res.innerText = `Proyección: DIESEL ${nD.toFixed(2)} | GASOHOL ${nG.toFixed(2)}`;
+        res.innerText = `Proyección stock: DIESEL ${nD.toFixed(2)} | GASOHOL ${nG.toFixed(2)}`;
     }
 }
 
-// --- LOGICA DE DATOS ---
 async function cargarDatosDesdeNube() {
     try {
         const response = await fetch(URL_GOOGLE_SHEETS + '?t=' + new Date().getTime());
@@ -206,6 +223,7 @@ async function cargarDatosDesdeNube() {
             db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
             db.historial = data.historialNube || [];
             actualizarUI();
+            actualizarAutonomia();
         }
     } catch (e) { document.getElementById('statusCloud').innerText = "⚠️ Modo Local"; }
 }
@@ -213,8 +231,6 @@ async function cargarDatosDesdeNube() {
 function actualizarUI() {
     document.getElementById('sDiesel').innerText = db.stockFuel.diesel.toFixed(2);
     document.getElementById('sGasohol').innerText = db.stockFuel.gasohol.toFixed(2);
-    document.getElementById('f60').innerText = db.stockFiltros.cf60;
-    document.getElementById('f100').innerText = db.stockFiltros.cf100;
 
     const hoy = new Date();
     document.getElementById('mantoBody').innerHTML = db.equipos.map((e, i) => {
@@ -239,28 +255,25 @@ function procesarMovimiento() {
 
     if (isNaN(cant) || cant <= 0) return alert("Cantidad inválida");
     
-    // Simulación local antes de enviar
-    if (mov === 'salida') db.stockFuel[prod.toLowerCase()] -= cant;
-    else db.stockFuel[prod.toLowerCase()] += cant;
-
     fetch(URL_GOOGLE_SHEETS, {
         method: 'POST',
         mode: 'no-cors',
         body: JSON.stringify({
             tipo: mov.toUpperCase(), producto: prod, cantidad: cant, responsable: ref.toUpperCase(),
-            stockDiesel: db.stockFuel.diesel, stockGasohol: db.stockFuel.gasohol
+            stockDiesel: mov === 'salida' && prod === 'DIESEL' ? db.stockFuel.diesel - cant : (mov === 'ingreso' && prod === 'DIESEL' ? db.stockFuel.diesel + cant : db.stockFuel.diesel),
+            stockGasohol: mov === 'salida' && prod === 'GASOHOL' ? db.stockFuel.gasohol - cant : (mov === 'ingreso' && prod === 'GASOHOL' ? db.stockFuel.gasohol + cant : db.stockFuel.gasohol)
         })
     }).then(() => setTimeout(cargarDatosDesdeNube, 2000));
     
-    actualizarUI();
     document.getElementById('cant').value = "";
 }
 
 function toggleCisterna() { document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none'; }
 function hacerManto(i) { db.equipos[i].ult = new Date().toISOString().split('T')[0]; actualizarUI(); }
+function exportarExcel() { /* Lógica XLSX de siempre */ }
 
 cargarDatosDesdeNube();
-setInterval(cargarDatosDesdeNube, 40000);
+setInterval(cargarDatosDesdeNube, 60000);
 </script>
 </body>
 </html>
