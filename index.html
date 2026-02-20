@@ -145,10 +145,12 @@ function fRender() {
 
 async function doSave() {
     const b = document.getElementById('btnSave');
-    const m = document.getElementById('inMov').value;
+    const m = document.getElementById('inMov').value; // 'SALIDA' o 'INGRESO'
     const p = document.getElementById('inProd').value;
     const c = parseFloat(document.getElementById('inCant').value);
-    const r = document.getElementById('inRef').value || "OPERACION";
+    
+    // CAMBIO AQUÍ: Si es SALIDA, enviamos "DESPACHO". Si es INGRESO, "INGRESO".
+    const r = (m === 'SALIDA') ? "DESPACHO" : "INGRESO";
     
     if(!c) return alert("Ingrese cantidad");
 
@@ -156,11 +158,23 @@ async function doSave() {
     if(p === 'DIESEL') nD = m === 'SALIDA' ? nD - c : nD + c; else nG = m === 'SALIDA' ? nG - c : nG + c;
 
     b.disabled = true; b.innerText = "Guardando...";
-    await fetch(URL_BASE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: m, producto: p, cantidad: c, responsable: r, stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) }) });
+    
+    // Asegúrate de que 'responsable' tome el valor de 'r'
+    await fetch(URL_BASE, { 
+        method: 'POST', 
+        mode: 'no-cors', 
+        body: JSON.stringify({ 
+            tipo: m, 
+            producto: p, 
+            cantidad: c, 
+            responsable: r, // Aquí enviará DESPACHO o INGRESO
+            stockDiesel: nD.toFixed(2), 
+            stockGasohol: nG.toFixed(2) 
+        }) 
+    });
     
     setTimeout(() => { fLoad(); b.disabled = false; b.innerText = "Registrar Movimiento"; document.getElementById('inCant').value=""; }, 1500);
 }
-
 function opSim() {
     document.getElementById('modSim').style.display = 'block';
     const sD = local.s.d; const sG = local.s.g;
@@ -196,3 +210,4 @@ setInterval(fLoad, 30000);
 </script>
 </body>
 </html>
+
