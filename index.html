@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA ACP V15 - OPERATIVO</title>
+    <title>SISTEMA ACP V15 - GESTIÓN TOTAL</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --bg:#f1f5f9; --c:#ffffff; --p:#0f172a; --a:#3b82f6; --d:#2563eb; --g:#10b981; --err:#ef4444; --warn:#f59e0b; --ok:#22c55e; }
@@ -10,20 +10,21 @@
         .container { max-width: 1400px; margin: auto; display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
         .header { grid-column: span 12; display: flex; justify-content: space-between; align-items: center; background: var(--p); padding: 15px 30px; border-radius: 12px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .card { background: var(--c); border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .card-title { font-weight: 700; margin-bottom: 15px; color: var(--p); font-size: 1.1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+        .card-title { font-weight: 700; margin-bottom: 15px; color: var(--p); font-size: 1.1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; display: flex; justify-content: space-between; }
         .stock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .stock-item { padding: 15px; border-radius: 10px; border: 2px solid #f1f5f9; text-align: center; transition: 0.3s; }
+        .stock-item { padding: 15px; border-radius: 10px; border: 2px solid #f1f5f9; text-align: center; }
         .val { font-size: 2.2rem; font-weight: 800; display: block; margin: 5px 0; }
         .auton { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; background: #f1f5f9; }
         .sem-ok { border-color: var(--ok); background: #f0fdf4; }
         .sem-alert { border-color: var(--warn); background: #fffbeb; }
         .sem-crit { border-color: var(--err); background: #fef2f2; }
         .btn { cursor: pointer; padding: 10px 15px; border: none; border-radius: 8px; font-weight: 600; transition: 0.2s; text-align: center; }
-        .btn-main { background: var(--a); color: white; width: 100%; }
+        .btn-main { background: var(--a); color: white; width: 100%; margin-top: 5px; }
+        .btn-varilla { background: #64748b; color: white; width: 100%; margin-top: 5px; }
         .btn-sec { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
         input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 12px; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-        th { text-align: left; padding: 10px; font-size: 0.75rem; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #f1f5f9; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 10px; font-size: 0.75rem; color: #64748b; border-bottom: 2px solid #f1f5f9; }
         td { padding: 10px; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
         .modal-c { background: white; margin: 5% auto; padding: 25px; width: 500px; border-radius: 15px; }
@@ -33,7 +34,7 @@
 
 <div class="container">
     <div class="header">
-        <div><h2 style="margin:0">⛽ Control Operativo ACP</h2><small id="netStatus">⏳ Conectando...</small></div>
+        <div><h2 style="margin:0">⛽ Sistema ACP - Gestión de Combustible</h2><small id="netStatus">⏳ Cargando...</small></div>
         <div style="display:flex; gap:10px;">
             <button onclick="opSim()" class="btn btn-sec">📊 Simulador</button>
             <button onclick="doExcel()" class="btn btn-sec" style="background:var(--ok)">📥 Excel</button>
@@ -41,19 +42,22 @@
     </div>
 
     <div class="card" style="grid-column: span 4;">
-        <div class="card-title">📝 Registro de Operación</div>
-        <label>Movimiento</label>
-        <select id="inMov" onchange="chIng()"><option value="SALIDA">Salida (Despacho)</option><option value="INGRESO">Ingreso (Cisterna)</option></select>
-        <label>Producto</label>
+        <div class="card-title">📝 Movimientos</div>
+        <select id="inMov" onchange="chIng()">
+            <option value="SALIDA">Despacho (Salida)</option>
+            <option value="INGRESO">Cisterna (Ingreso)</option>
+            <option value="AJUSTE">Lectura Varillaje (Ajuste)</option>
+        </select>
         <select id="inProd"><option value="DIESEL">Diesel B5 S50</option><option value="GASOHOL">Gasohol Regular</option></select>
-        <label>Cantidad (Gln)</label>
+        <label id="lblCant">Cantidad (Gln):</label>
         <input type="number" id="inCant" placeholder="0.00">
-        <div id="inExtra" style="display:none;"><label>Referencia</label><input type="text" id="inRef" placeholder="Placa / Factura"></div>
-        <button id="btnSave" class="btn btn-main" onclick="doSave()">Registrar Movimiento</button>
+        <div id="inExtra" style="display:none;"><label>Referencia:</label><input type="text" id="inRef" placeholder="Placa / Factura"></div>
+        <button id="btnSave" class="btn btn-main" onclick="doSave()">Guardar Operación</button>
+        <p style="font-size: 0.75rem; color: #64748b; margin-top: 10px;">* El ajuste de varillaje reemplaza el saldo actual por el valor ingresado.</p>
     </div>
 
     <div class="card" style="grid-column: span 8;">
-        <div class="card-title">🚚 Monitor de Inventario Real</div>
+        <div class="card-title">🚚 Stock en Tiempo Real</div>
         <div class="stock-grid">
             <div id="mD" class="stock-item">
                 <b>DIESEL B5 S50</b>
@@ -69,42 +73,35 @@
     </div>
 
     <div class="card" style="grid-column: span 12;">
-        <div class="card-title">🛠 Estado de Surtidores y Filtros</div>
-        <table><thead><tr><th>Equipo</th><th>Filtro</th><th>Ult. Cambio</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="mBody"></tbody></table>
+        <div class="card-title">🛠 Mantenimiento de Filtros</div>
+        <table><thead><tr><th>Equipo</th><th>Filtro</th><th>Cambio</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="mBody"></tbody></table>
     </div>
 
     <div class="card" style="grid-column: span 12;">
-        <div class="card-title">📝 Historial Reciente</div>
-        <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Cant.</th><th>Saldo</th></tr></thead><tbody id="hBody"></tbody></table>
+        <div class="card-title">📝 Historial Logístico</div>
+        <table><thead><tr><th>Fecha</th><th>Operación</th><th>Producto</th><th>Cant.</th><th>Saldo Final</th></tr></thead><tbody id="hBody"></tbody></table>
     </div>
 </div>
 
 <div id="modSim" class="modal">
     <div class="modal-c">
-        <h3>📊 Planificación de Pedido</h3>
+        <h3>📊 Análisis de Pedido Próximas 24h</h3>
         <div style="background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--a);">
-            <span id="txtSug">Analizando stock...</span>
+            <span id="txtSug">Analizando...</span>
         </div>
-        <label>Diesel a pedir:</label><input type="number" id="pD">
-        <label>Gasohol a pedir:</label><input type="number" id="pG">
-        <button onclick="doSend()" class="btn btn-main" style="background:var(--p)">📧 Enviar Pedido a Logística</button>
+        <label>Diesel a pedir (Gln):</label><input type="number" id="pD">
+        <label>Gasohol a pedir (Gln):</label><input type="number" id="pG">
+        <button onclick="doSend()" class="btn btn-main" style="background:var(--p)">📧 Enviar Pedido a Compras</button>
         <button onclick="clSim()" class="btn" style="width:100%; margin-top:10px; background:#e2e8f0;">Cerrar</button>
     </div>
 </div>
 
 <script>
-// COPIA TU URL DE GOOGLE SHEETS AQUÍ
 const URL_BASE = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec';
 
 let local = { 
-    s: { d: 0, g: 0 }, 
-    h: [], 
-    m: [
-        {e:'Surtidor 1', f:'CF60', u:'2026-01-15'},
-        {e:'Surtidor 2', f:'CF60', u:'2026-01-23'},
-        {e:'Hipotanque', f:'CF100', u:'2025-12-10'},
-        {e:'Gasohol', f:'MALLA', u:'2026-01-15'}
-    ] 
+    s: { d: 0, g: 0 }, h: [], 
+    m: [{e:'Surtidor 1', f:'CF60', u:'2026-01-15'},{e:'Surtidor 2', f:'CF60', u:'2026-01-23'},{e:'Hipotanque', f:'CF100', u:'2025-12-10'},{e:'Gasohol', f:'MALLA', u:'2026-01-15'}] 
 };
 
 async function fLoad() {
@@ -122,9 +119,8 @@ async function fLoad() {
 function fRender() {
     const aD = (local.s.d / 1700).toFixed(1);
     const aG = (local.s.g / 165).toFixed(1);
-    
-    document.getElementById('vD').innerText = local.s.d.toLocaleString(undefined, {minimumFractionDigits:2});
-    document.getElementById('vG').innerText = local.s.g.toLocaleString(undefined, {minimumFractionDigits:2});
+    document.getElementById('vD').innerText = local.s.d.toLocaleString(undefined,{minimumFractionDigits:2});
+    document.getElementById('vG').innerText = local.s.g.toLocaleString(undefined,{minimumFractionDigits:2});
     document.getElementById('aD').innerText = aD + " días";
     document.getElementById('aG').innerText = aG + " días";
 
@@ -137,72 +133,62 @@ function fRender() {
     const hoy = new Date();
     document.getElementById('mBody').innerHTML = local.m.map((x, i) => {
         const diff = Math.floor((hoy - new Date(x.u)) / 86400000);
-        return `<tr><td><b>${x.e}</b></td><td>${x.f}</td><td>${x.u}</td><td>${diff} d</td><td>${diff>=90?'AVISO':'OK'}</td><td><button onclick="reM(${i})">Reset</button></td></tr>`;
+        return `<tr><td><b>${x.e}</b></td><td>${x.f}</td><td>${x.u}</td><td>${diff} d</td><td>${diff>=90?'VENCIDO':'OK'}</td><td><button onclick="reM(${i})">Reset</button></td></tr>`;
     }).join('');
-    
-    document.getElementById('hBody').innerHTML = local.h.slice(0,10).map(x => `<tr><td>${x.fecha}</td><td>${x.mov}</td><td>${x.prod}</td><td>${x.cant}</td><td><b>${x.saldo}</b></td></tr>`).join('');
+    document.getElementById('hBody').innerHTML = local.h.slice(0,12).map(x => `<tr><td>${x.fecha}</td><td>${x.ref}</td><td>${x.prod}</td><td>${x.cant}</td><td><b>${x.saldo}</b></td></tr>`).join('');
 }
 
 async function doSave() {
     const b = document.getElementById('btnSave');
-    const m = document.getElementById('inMov').value; // 'SALIDA' o 'INGRESO'
+    const m = document.getElementById('inMov').value; 
     const p = document.getElementById('inProd').value;
     const c = parseFloat(document.getElementById('inCant').value);
-    
-    // CAMBIO AQUÍ: Si es SALIDA, enviamos "DESPACHO". Si es INGRESO, "INGRESO".
-    const r = (m === 'SALIDA') ? "DESPACHO" : "INGRESO";
     
     if(!c) return alert("Ingrese cantidad");
 
     let nD = local.s.d; let nG = local.s.g;
-    if(p === 'DIESEL') nD = m === 'SALIDA' ? nD - c : nD + c; else nG = m === 'SALIDA' ? nG - c : nG + c;
+    let refHoja = "";
 
-    b.disabled = true; b.innerText = "Guardando...";
+    if(m === 'AJUSTE') {
+        if(p === 'DIESEL') nD = c; else nG = c;
+        refHoja = "VARILLADO";
+    } else {
+        if(p === 'DIESEL') nD = m === 'SALIDA' ? nD - c : nD + c; 
+        else nG = m === 'SALIDA' ? nG - c : nG + c;
+        refHoja = (m === 'SALIDA') ? "DESPACHO" : (document.getElementById('inRef').value || "INGRESO");
+    }
+
+    b.disabled = true; b.innerText = "Sincronizando...";
+    await fetch(URL_BASE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: m, producto: p, cantidad: c, responsable: refHoja, stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) }) });
     
-    // Asegúrate de que 'responsable' tome el valor de 'r'
-    await fetch(URL_BASE, { 
-        method: 'POST', 
-        mode: 'no-cors', 
-        body: JSON.stringify({ 
-            tipo: m, 
-            producto: p, 
-            cantidad: c, 
-            responsable: r, // Aquí enviará DESPACHO o INGRESO
-            stockDiesel: nD.toFixed(2), 
-            stockGasohol: nG.toFixed(2) 
-        }) 
-    });
-    
-    setTimeout(() => { fLoad(); b.disabled = false; b.innerText = "Registrar Movimiento"; document.getElementById('inCant').value=""; }, 1500);
+    setTimeout(() => { fLoad(); b.disabled = false; b.innerText = "Guardar Operación"; document.getElementById('inCant').value=""; }, 1500);
 }
+
 function opSim() {
     document.getElementById('modSim').style.display = 'block';
-    const sD = local.s.d; const sG = local.s.g;
+    const sD = local.s.d;
     let sugD = sD < 3400 ? 3000 : 0;
-    let sugG = sG < 400 ? 500 : 0;
-    
-    let msg = "";
-    if(sugD > 0) msg += "⚠️ Diesel bajo: Pedir 3000 gl hoy. ";
-    if(sugG > 0) msg += "⚠️ Gasohol bajo: Pedir 500 gl. ";
-    if(!msg) msg = "✅ Stocks estables para las próximas 24h.";
-    
-    document.getElementById('txtSug').innerText = msg;
+    let sugG = local.s.g < 400 ? 500 : 0;
+    document.getElementById('txtSug').innerText = (sugD > 0) ? "⚠️ Nivel Preventivo: Se sugiere pedir 3,000 gl hoy para asegurar stock mañana." : "✅ Niveles estables.";
     document.getElementById('pD').value = sugD; document.getElementById('pG').value = sugG;
 }
 
 function doSend() {
-    fetch(URL_BASE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: document.getElementById('pD').value, cantidadGasohol: document.getElementById('pG').value, actualD: local.s.d, actualG: local.s.g }) })
-    .then(() => { alert("Pedido enviado"); clSim(); });
+    fetch(URL_BASE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: document.getElementById('pD').value, cantidadGasohol: document.getElementById('pG').value, actualD: local.s.d, actualG: local.s.g }) }).then(() => { alert("Pedido enviado a Compras"); clSim(); });
 }
 
 function doExcel() {
     const ws = XLSX.utils.json_to_sheet(local.h);
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-    XLSX.writeFile(wb, "Reporte_ACP.xlsx");
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data");
+    XLSX.writeFile(wb, "Control_ACP_V15.xlsx");
 }
 
 function clSim() { document.getElementById('modSim').style.display = 'none'; }
-function chIng() { document.getElementById('inExtra').style.display = document.getElementById('inMov').value === 'INGRESO' ? 'block' : 'none'; }
+function chIng() { 
+    const m = document.getElementById('inMov').value;
+    document.getElementById('inExtra').style.display = (m === 'INGRESO') ? 'block' : 'none';
+    document.getElementById('lblCant').innerText = (m === 'AJUSTE') ? "Nueva medida física (Gln):" : "Cantidad (Gln):";
+}
 function reM(i) { local.m[i].u = new Date().toISOString().split('T')[0]; fRender(); }
 
 fLoad();
@@ -210,4 +196,3 @@ setInterval(fLoad, 30000);
 </script>
 </body>
 </html>
-
