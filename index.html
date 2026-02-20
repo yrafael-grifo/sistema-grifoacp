@@ -1,173 +1,160 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>CONTROL ACP V15</title>
-<script src=""></script>
+<title>SISTEMA ACP V15 - GESTION</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root { --primary: #1e293b; --accent: #3b82f6; --diesel: #2563eb; --gasohol: #10b981; --danger: #ef4444; --warning: #f59e0b; --success: #059669; }
-body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
-.dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1350px; margin: auto; }
-.card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--accent); }
-.full-width { grid-column: span 2; }
-.btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; transition: 0.2s; text-align: center; }
-.btn-blue { background: var(--accent); width: 100%; margin-top: 10px; }
-.btn-sim { background: #6366f1; }
-.monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.stock-box { padding: 15px; border-radius: 10px; text-align: center; background: #f8fafc; border: 3px solid #e2e8f0; transition: 0.5s; }
-.stock-label { font-size: 2.2rem; font-weight: 800; display: block; margin: 5px 0; }
-.autonomia-ok { border-color: var(--success) !important; background: #f0fdf4 !important; }
-.autonomia-alerta { border-color: var(--warning) !important; background: #fffbeb !important; }
-.autonomia-critica { border-color: var(--danger) !important; background: #fee2e2 !important; animation: blink 1.5s infinite; }
-@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+:root { --p:#1e293b; --a:#3b82f6; --d:#2563eb; --g:#10b981; --err:#ef4444; --warn:#f59e0b; --ok:#059669; }
+body { font-family: sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
+.dash { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1350px; margin: auto; }
+.card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--a); }
+.full { grid-column: span 2; }
+.btn { cursor: pointer; padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; width: 100%; text-align: center; }
+.btn-b { background: var(--a); margin-top: 10px; }
+.btn-s { background: #6366f1; width: auto; padding: 8px 15px; }
+.stock-box { padding: 15px; border-radius: 10px; text-align: center; background: #f8fafc; border: 3px solid #e2e8f0; }
+.val { font-size: 2.2rem; font-weight: 800; display: block; }
+.sem-ok { border-color: var(--ok) !important; background: #f0fdf4 !important; }
+.sem-alert { border-color: var(--warn) !important; background: #fffbeb !important; }
+.sem-crit { border-color: var(--err) !important; background: #fee2e2 !important; animation: blink 1.5s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
 th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-.status-badge { padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold; font-size: 0.8em; }
-.bg-success { background: var(--success); } .bg-warning { background: var(--warning); } .bg-danger { background: var(--danger); }
-.modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.8); backdrop-filter: blur(4px); }
-.modal-content { background: white; margin: 2% auto; padding: 25px; width: 90%; max-width: 750px; border-radius: 15px; }
-.sim-card { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; margin-bottom: 10px; }
+.modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
+.modal-c { background: white; margin: 2% auto; padding: 25px; width: 90%; max-width: 700px; border-radius: 15px; }
+input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
 </style>
 </head>
 <body>
-<div class="dashboard">
-<div class="card full-width" style="background: var(--primary); color: white; display:flex; justify-content:space-between; align-items:center; border:none;">
-<div><h2 style="margin:0">⛽ Control Grupo ACP - Gestión Operativa</h2><small id="statusCloud">Cargando...</small></div>
+<div class="dash">
+<div class="card full" style="background: var(--p); color: white; display:flex; justify-content:space-between; align-items:center;">
+<div><h2 style="margin:0">⛽ Control ACP - V15</h2><small id="cloudStatus">Conectando...</small></div>
 <div style="display:flex; gap:10px;">
-<button onclick="abrirSimulador()" class="btn btn-sim">📊 Simulador</button>
-<button onclick="exportarExcel()" class="btn" style="background:#107c41">📥 Excel</button>
+<button onclick="openSim()" class="btn btn-s">📊 Simulador</button>
+<button onclick="exportXLS()" class="btn btn-s" style="background:#107c41">📥 Excel</button>
 </div>
 </div>
 <div class="card">
 <h3>📝 Registro</h3>
-<select id="tipoMov" onchange="toggleCisterna()"><option value="salida">Salida</option><option value="ingreso">Ingreso</option></select>
-<select id="prod"><option value="DIESEL">Diesel</option><option value="GASOHOL">Gasohol</option></select>
-<input type="number" id="cant" step="0.01" placeholder="Cantidad gl">
-<div id="extraData" style="display:none;"><input type="text" id="referencia" placeholder="Placa / Factura"></div>
-<button id="btnGuardar" class="btn btn-blue" onclick="procesarMovimiento()">Guardar</button>
+<select id="tMov" onchange="checkIngreso()"><option value="salida">Salida</option><option value="ingreso">Ingreso</option></select>
+<select id="tProd"><option value="DIESEL">Diesel</option><option value="GASOHOL">Gasohol</option></select>
+<input type="number" id="tCant" placeholder="Cantidad gl">
+<div id="extra" style="display:none;"><input type="text" id="tRef" placeholder="Referencia"></div>
+<button id="btnSave" class="btn btn-blue" style="background:var(--a)" onclick="saveData()">Guardar Operación</button>
 </div>
 <div class="card">
-<h3>🚚 Monitor Stock (Ciclos 24h)</h3>
-<div class="monitor-grid">
-<div id="boxD" class="stock-box"><b>Diesel</b><span id="sDiesel" class="stock-label" style="color:var(--diesel)">0.00</span><span id="autD" style="background:var(--primary); color:white; padding:2px 6px; border-radius:4px; font-size:0.8em;">---</span></div>
-<div id="boxG" class="stock-box"><b>Gasohol</b><span id="sGasohol" class="stock-label" style="color:var(--gasohol)">0.00</span><span id="autG" style="background:var(--primary); color:white; padding:2px 6px; border-radius:4px; font-size:0.8em;">---</span></div>
+<h3>🚚 Monitor Stock (24h)</h3>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+<div id="bD" class="stock-box"><b>Diesel</b><span id="vD" class="val" style="color:var(--d)">0.00</span><span id="aD" style="background:var(--p); color:white; padding:2px 6px; border-radius:4px; font-size:0.8em">---</span></div>
+<div id="bG" class="stock-box"><b>Gasohol</b><span id="vG" class="val" style="color:var(--g)">0.00</span><span id="aG" style="background:var(--p); color:white; padding:2px 6px; border-radius:4px; font-size:0.8em">---</span></div>
 </div>
 </div>
-<div class="card full-width">
-<h3>🛠 Plan de Mantenimiento</h3>
-<table>
-<thead><tr><th>Equipo</th><th>Filtro</th><th>Fecha</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead>
-<tbody id="mantoBody"></tbody>
-</table>
+<div class="card full">
+<h3>🛠 Mantenimiento y Filtros</h3>
+<table><thead><tr><th>Equipo</th><th>Filtro</th><th>Fecha</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="mantoBody"></tbody></table>
 </div>
-<div class="card full-width">
+<div class="card full">
 <h3>📝 Historial Reciente</h3>
-<table>
-<thead><tr><th>Fecha</th><th>Mov</th><th>Prod</th><th>Cant</th><th>Saldo</th></tr></thead>
-<tbody id="historialBody"></tbody>
-</table>
+<table><thead><tr><th>Fecha</th><th>Mov</th><th>Prod</th><th>Cant</th><th>Saldo</th></tr></thead><tbody id="histBody"></tbody></table>
 </div>
 </div>
-<div id="modalSimulador" class="modal">
-<div class="modal-content">
-<div style="display:flex; justify-content:space-between;"><h2>📊 Planificación Pedido</h2><button onclick="cerrarSimulador()" style="border:none; background:none; font-size:1.5rem; cursor:pointer;">✕</button></div>
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:15px 0;">
-<div class="sim-card"><b>Consumo Diario</b>
-Diesel: 1,700 gl
-Gasohol: 165 gl</div>
-<div class="sim-card" style="background:#e0f2fe;"><b>Autonomía</b>
-Diesel: <span id="dD">0</span> ciclos
-Gasohol: <span id="dG">0</span> días</div>
+<div id="mSim" class="modal">
+<div class="modal-c">
+<h2>📊 Planificación Pedido</h2>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+<div style="background:#f1f5f9; padding:10px; border-radius:8px"><b>Consumo Diario</b>
+
+
+Diesel: 1700 gl</div>
+<div style="background:#e0f2fe; padding:10px; border-radius:8px"><b>Autonomía</b>
+
+
+Diesel: <span id="sD">0</span> d</div>
 </div>
-<div class="sim-card" style="border:2px solid var(--accent); background:#f8fafc;">
-<h3>🛒 Análisis Operativo</h3>
-<p id="analisisTexto" style="font-size:0.95em; line-height:1.4;"></p>
-<label>Diesel a pedir:</label><input type="number" id="pedD">
-<label>Gasohol a pedir:</label><input type="number" id="pedG">
-<button onclick="enviarPedidoCorreo()" class="btn" style="background:var(--success); width:100%;">📧 Enviar Pedido (3,000 gl)</button>
-<p id="envioStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
+<div style="background:#f8fafc; padding:15px; border:2px solid var(--a); border-radius:8px">
+<p id="txtSug" style="font-weight:bold;"></p>
+<label>Diesel a pedir:</label><input type="number" id="pD">
+<label>Gasohol a pedir:</label><input type="number" id="pG">
+<button onclick="sendMail()" class="btn" style="background:var(--ok)">📧 Enviar Pedido a Compras</button>
+<p id="mailStatus" style="text-align:center; margin-top:10px;"></p>
 </div>
+<button onclick="closeSim()" class="btn" style="background:#94a3b8; margin-top:10px;">Cerrar</button>
 </div>
 </div>
 <script>
-const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec';
-let db = { stockFuel: { diesel: 0, gasohol: 0 }, historial: [], equipos: [{ id: 'Surtidor 1 Diesel', f: 'CF60', ult: '2026-01-15' }, { id: 'Surtidor 2 Diesel', f: 'CF60', ult: '2026-01-23' }, { id: 'Hipotanque (Móvil)', f: 'CF100', ult: '2025-12-10' }, { id: 'Surtidor Gasohol', f: 'MALLA', ult: '2026-01-15' }] };
-async function cargarDatosDesdeNube() {
+const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbzQEQvDebG9gprHH4XNGNbiM7EW5CWRy5rjJHhKw3MUJJ5_P4YV7muU_TupuCwCau-z/exec';
+let core = { stock: { d: 0, g: 0 }, hist: [], units: [{id:'Surtidor 1', f:'CF60', u:'2026-01-15'},{id:'Surtidor 2', f:'CF60', u:'2026-01-23'},{id:'Hipotanque', f:'CF100', u:'2025-12-10'},{id:'Gasohol', f:'MALLA', u:'2026-01-15'}] };
+
+async function loadData() {
 try {
-const res = await fetch(URL_GOOGLE_SHEETS + '?t=' + new Date().getTime());
-const data = await res.json();
-db.stockFuel.diesel = parseFloat(data.ultimoDiesel);
-db.stockFuel.gasohol = parseFloat(data.ultimoGasohol);
-db.historial = data.historialNube || [];
-actualizarUI();
-document.getElementById('statusCloud').innerText = "✅ Sincronizado";
-} catch (e) { document.getElementById('statusCloud').innerText = "⚠️ Error de red"; }
+const r = await fetch(URL_SCRIPT + '?t=' + new Date().getTime());
+const d = await r.json();
+core.stock.d = parseFloat(d.ultimoDiesel);
+core.stock.g = parseFloat(d.ultimoGasohol);
+core.hist = d.historialNube || [];
+render();
+document.getElementById('cloudStatus').innerText = "✅ Sincronizado";
+} catch (e) { document.getElementById('cloudStatus').innerText = "⚠️ Error de Red"; }
 }
-function actualizarUI() {
-const pD = 1700; const pG = 165;
-const ad = (db.stockFuel.diesel / pD).toFixed(1);
-const ag = (db.stockFuel.gasohol / pG).toFixed(1);
-document.getElementById('sDiesel').innerText = db.stockFuel.diesel.toFixed(2);
-document.getElementById('sGasohol').innerText = db.stockFuel.gasohol.toFixed(2);
-document.getElementById('autD').innerText = ad + " días";
-document.getElementById('autG').innerText = ag + " días";
-const boxD = document.getElementById('boxD'); boxD.className = 'stock-box';
-if(ad < 1.0) boxD.classList.add('autonomia-critica');
-else if(ad < 2.0) boxD.classList.add('autonomia-alerta');
-else boxD.classList.add('autonomia-ok');
-const hoy = new Date();
-document.getElementById('mantoBody').innerHTML = db.equipos.map((e, i) => {
-const diff = Math.floor((hoy - new Date(e.ult)) / (10006060*24));
-let c = diff >= 90 ? "bg-danger" : (diff >= 80 ? "bg-warning" : "bg-success");
-return &lt;tr&gt;&lt;td&gt;&lt;b&gt;${e.id}&lt;/b&gt;&lt;/td&gt;&lt;td&gt;&lt;code&gt;${e.f}&lt;/code&gt;&lt;/td&gt;&lt;td&gt;${e.ult}&lt;/td&gt;&lt;td&gt;${diff} d&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;status-badge ${c}&quot;&gt;${diff&gt;=90?&#39;VENCIDO&#39;:&#39;OK&#39;}&lt;/span&gt;&lt;/td&gt;&lt;td&gt;&lt;button class=&quot;btn btn-blue&quot; style=&quot;padding:5px 10px; margin:0; width:auto;&quot; onclick=&quot;hacerManto(${i})&quot;&gt;Reset&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;;
+
+function render() {
+const aD = (core.stock.d / 1700).toFixed(1);
+document.getElementById('vD').innerText = core.stock.d.toFixed(2);
+document.getElementById('vG').innerText = core.stock.g.toFixed(2);
+document.getElementById('aD').innerText = aD + " d";
+const boxD = document.getElementById('bD'); boxD.className = 'stock-box';
+if(aD < 1.0) boxD.classList.add('sem-crit'); else if(aD < 2.0) boxD.classList.add('sem-alert'); else boxD.classList.add('sem-ok');
+const today = new Date();
+document.getElementById('mantoBody').innerHTML = core.units.map((u, i) => {
+const diff = Math.floor((today - new Date(u.u)) / 86400000);
+return '<tr><td>'+u.id+'</td><td>'+u.f+'</td><td>'+u.u+'</td><td>'+diff+' d</td><td>OK</td><td><button onclick="resetManto('+i+')">Reset</button></td></tr>';
 }).join('');
-document.getElementById('historialBody').innerHTML = db.historial.slice(0, 10).map(h => &lt;tr&gt;&lt;td&gt;${h.fecha}&lt;/td&gt;&lt;td&gt;&lt;b&gt;${h.mov}&lt;/b&gt;&lt;/td&gt;&lt;td&gt;${h.prod}&lt;/td&gt;&lt;td&gt;${h.cant}&lt;/td&gt;&lt;td&gt;&lt;b&gt;${h.saldo}&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;).join('');
+document.getElementById('histBody').innerHTML = core.hist.slice(0,10).map(h => '<tr><td>'+h.fecha+'</td><td>'+h.mov+'</td><td>'+h.prod+'</td><td>'+h.cant+'</td><td>'+h.saldo+'</td></tr>').join('');
 }
-function procesarMovimiento() {
-const btn = document.getElementById('btnGuardar');
-const mov = document.getElementById('tipoMov').value.toUpperCase();
-const prod = document.getElementById('prod').value;
-const cant = parseFloat(document.getElementById('cant').value);
-const ref = document.getElementById('referencia').value || "DESPACHO";
-if (!cant || cant <= 0) return alert("Cantidad inválida");
-let nD = db.stockFuel.diesel; let nG = db.stockFuel.gasohol;
-if (prod === 'DIESEL') nD = (mov === 'SALIDA') ? nD - cant : nD + cant;
-else nG = (mov === 'SALIDA') ? nG - cant : nG + cant;
-btn.disabled = true;
-fetch(URL_GOOGLE_SHEETS, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: mov, producto: prod, cantidad: cant, responsable: ref.toUpperCase(), stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) }) }).then(() => { db.stockFuel.diesel = nD; db.stockFuel.gasohol = nG; actualizarUI(); setTimeout(() => { cargarDatosDesdeNube(); btn.disabled = false; document.getElementById('cant').value = ""; }, 1500); });
+
+function saveData() {
+const m = document.getElementById('tMov').value.toUpperCase();
+const p = document.getElementById('tProd').value;
+const c = parseFloat(document.getElementById('tCant').value);
+const r = document.getElementById('tRef').value || "DESPACHO";
+if(!c) return alert("Cantidad inválida");
+let nD = core.stock.d; let nG = core.stock.g;
+if(p === 'DIESEL') nD = m === 'SALIDA' ? nD - c : nD + c; else nG = m === 'SALIDA' ? nG - c : nG + c;
+fetch(URL_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: m, producto: p, cantidad: c, responsable: r, stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) }) }).then(() => { core.stock.d = nD; core.stock.g = nG; render(); setTimeout(loadData, 1500); });
 }
-function abrirSimulador() {
-document.getElementById('modalSimulador').style.display = 'block';
-const sD = db.stockFuel.diesel; const c = 1700;
+
+function openSim() {
+document.getElementById('mSim').style.display = 'block';
+const sD = core.stock.d; const c = 1700;
 const autoD = (sD / c).toFixed(1);
-document.getElementById('dD').innerText = autoD;
-document.getElementById('dG').innerText = (db.stockFuel.gasohol / 165).toFixed(1);
+document.getElementById('sD').innerText = autoD;
 let sug = sD < 3400 ? 3000 : 0;
-document.getElementById('analisisTexto').innerHTML = sug > 0 ? ⚠️ Stock actual (${sD.toFixed(0)} gl) bajo. Después de los turnos de hoy quedarás con ${(sD-c).toFixed(0)} gl. &lt;b&gt;Pedir 3,000 gl hoy.&lt;/b&gt; : "✅ Stock seguro para las próximas 24h.";
-document.getElementById('pedD').value = sug;
+document.getElementById('txtSug').innerHTML = sug > 0 ? '⚠️ Stock bajo. Pedir 3,000 gl hoy para cubrir mañana.' : '✅ Stock seguro.';
+document.getElementById('pD').value = sug;
 }
-function enviarPedidoCorreo() {
-const d = document.getElementById('pedD').value;
-const g = document.getElementById('pedG').value;
-const s = document.getElementById('envioStatus');
-if(!d && !g) return alert("Ingrese cantidades");
-s.innerText = "⏳ Enviando orden..."; s.style.color = "blue";
-fetch(URL_GOOGLE_SHEETS, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: d, cantidadGasohol: g, actualD: db.stockFuel.diesel, actualG: db.stockFuel.gasohol }) }).then(() => { s.innerText = "✅ Pedido enviado"; setTimeout(() => { s.innerText = ""; cerrarSimulador(); }, 2500); });
+
+function sendMail() {
+const d = document.getElementById('pD').value;
+const g = document.getElementById('pG').value;
+const s = document.getElementById('mailStatus');
+s.innerText = "⏳ Enviando...";
+fetch(URL_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: "PEDIDO_SIMULADO", cantidadDiesel: d, cantidadGasohol: g, actualD: core.stock.d, actualG: core.stock.g }) }).then(() => { s.innerText = "✅ Enviado"; setTimeout(closeSim, 2000); });
 }
-function exportarExcel() {
-if (db.historial.length === 0) return alert("No hay datos");
-const ws = XLSX.utils.json_to_sheet(db.historial.map(h => ({ FECHA: h.fecha, MOV: h.mov, PROD: h.prod, CANT: h.cant, REF: h.ref, SALDO: h.saldo })));
+
+function exportXLS() {
+const ws = XLSX.utils.json_to_sheet(core.hist.map(h => ({ FECHA: h.fecha, MOV: h.mov, PROD: h.prod, CANT: h.cant, REF: h.ref, SALDO: h.saldo })));
 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Historial");
-XLSX.writeFile(wb, Reporte_ACP_${new Date().toLocaleDateString()}.xlsx);
+XLSX.writeFile(wb, "Reporte_ACP.xlsx");
 }
-function cerrarSimulador() { document.getElementById('modalSimulador').style.display = 'none'; }
-function toggleCisterna() { document.getElementById('extraData').style.display = (document.getElementById('tipoMov').value === 'ingreso') ? 'block' : 'none'; }
-function hacerManto(i) { db.equipos[i].ult = new Date().toISOString().split('T')[0]; actualizarUI(); }
-cargarDatosDesdeNube();
-setInterval(cargarDatosDesdeNube, 30000);
+
+function closeSim() { document.getElementById('mSim').style.display = 'none'; }
+function checkIngreso() { document.getElementById('extra').style.display = document.getElementById('tMov').value === 'ingreso' ? 'block' : 'none'; }
+function resetManto(i) { core.units[i].u = new Date().toISOString().split('T')[0]; render(); }
+loadData();
+setInterval(loadData, 30000);
 </script>
+
 </body>
 </html>
-
-
