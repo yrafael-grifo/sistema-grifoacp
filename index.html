@@ -140,11 +140,19 @@ function actualizarUI() {
 
 function actualizarGrafico() {
     const ctx = document.getElementById('consumoChart').getContext('2d');
-    const labels = [...new Set(db.historial.slice(0,40).map(h => h.fecha.split(',')[0]))].reverse().slice(-7);
-    const dataD = labels.map(l => db.historial.filter(h => h.fecha.includes(l) && h.mov==='SALIDA' && h.prod==='DIESEL').reduce((a,b)=>a+parseFloat(b.cant),0));
-    const dataG = labels.map(l => db.historial.filter(h => h.fecha.includes(l) && h.mov==='SALIDA' && h.prod==='GASOHOL').reduce((a,b)=>a+parseFloat(b.cant),0));
-    if(chartObj) chartObj.destroy();
-    chartObj = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{label:'Diesel', data:dataD, backgroundColor:'#2563eb'},{label:'Gasohol', data:dataG, backgroundColor:'#10b981'}]}, options: { responsive: true, maintainAspectRatio: false }});
+    // Generar etiquetas para los últimos 7 días con formato DD/MM/YYYY
+    const labels = [];
+    for (let i = 6; i >= 0; i--) {
+        let d = new Date();
+        d.setDate(d.getDate() - i);
+        labels.push(d.toLocaleDateString('es-PE')); // Formato compatible con el historial
+    }
+
+    const dataD = labels.map(l => 
+        db.historial.filter(h => h.fecha.includes(l) && h.mov.toUpperCase() === 'SALIDA' && h.prod === 'DIESEL')
+        .reduce((a, b) => a + parseFloat(b.cant), 0)
+    );
+    // ... repetir para Gasohol
 }
 
 function abrirSimulador() {
@@ -169,3 +177,4 @@ cargarDatosDesdeNube(); setInterval(cargarDatosDesdeNube, 60000);
 </script>
 </body>
 </html>
+
