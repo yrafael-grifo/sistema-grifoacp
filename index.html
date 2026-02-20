@@ -10,7 +10,7 @@
         .container { max-width: 1400px; margin: auto; display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
         .header { grid-column: span 12; display: flex; justify-content: space-between; align-items: center; background: var(--p); padding: 15px 30px; border-radius: 12px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .card { background: var(--c); border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .card-title { font-weight: 700; margin-bottom: 15px; color: var(--p); font-size: 1.1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; display: flex; justify-content: space-between; }
+        .card-title { font-weight: 700; margin-bottom: 15px; color: var(--p); font-size: 1.1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
         .stock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .stock-item { padding: 15px; border-radius: 10px; border: 2px solid #f1f5f9; text-align: center; }
         .val { font-size: 2.2rem; font-weight: 800; display: block; margin: 5px 0; }
@@ -20,7 +20,6 @@
         .sem-crit { border-color: var(--err); background: #fef2f2; }
         .btn { cursor: pointer; padding: 10px 15px; border: none; border-radius: 8px; font-weight: 600; transition: 0.2s; text-align: center; }
         .btn-main { background: var(--a); color: white; width: 100%; margin-top: 5px; }
-        .btn-varilla { background: #64748b; color: white; width: 100%; margin-top: 5px; }
         .btn-sec { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
         input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 12px; box-sizing: border-box; }
         table { width: 100%; border-collapse: collapse; }
@@ -34,7 +33,7 @@
 
 <div class="container">
     <div class="header">
-        <div><h2 style="margin:0">⛽ Sistema ACP - Gestión de Combustible</h2><small id="netStatus">⏳ Cargando...</small></div>
+        <div><h2 style="margin:0">⛽ Sistema ACP - Gestión de Combustible</h2><small id="netStatus">⏳ Conectando...</small></div>
         <div style="display:flex; gap:10px;">
             <button onclick="opSim()" class="btn btn-sec">📊 Simulador</button>
             <button onclick="doExcel()" class="btn btn-sec" style="background:var(--ok)">📥 Excel</button>
@@ -53,7 +52,6 @@
         <input type="number" id="inCant" placeholder="0.00">
         <div id="inExtra" style="display:none;"><label>Referencia:</label><input type="text" id="inRef" placeholder="Placa / Factura"></div>
         <button id="btnSave" class="btn btn-main" onclick="doSave()">Guardar Operación</button>
-        <p style="font-size: 0.75rem; color: #64748b; margin-top: 10px;">* El ajuste de varillaje reemplaza el saldo actual por el valor ingresado.</p>
     </div>
 
     <div class="card" style="grid-column: span 8;">
@@ -107,13 +105,22 @@ let local = {
 async function fLoad() {
     try {
         const r = await fetch(URL_BASE + '?t=' + new Date().getTime());
+        if (!r.ok) throw new Error("Server error");
         const d = await r.json();
-        local.s.d = parseFloat(d.ultimoDiesel);
-        local.s.g = parseFloat(d.ultimoGasohol);
+        
+        // Validación de datos corruptos por borrado manual
+        local.s.d = parseFloat(d.ultimoDiesel) || 0;
+        local.s.g = parseFloat(d.ultimoGasohol) || 0;
         local.h = d.historialNube || [];
+        
         fRender();
         document.getElementById('netStatus').innerText = "✅ Conectado";
-    } catch (e) { document.getElementById('netStatus').innerText = "❌ Error de Red"; }
+    } catch (e) { 
+        document.getElementById('netStatus').innerText = "⚠️ Reintentando conexión...";
+        console.error("Fetch error:", e);
+        // Si hay error, reintenta automáticamente en 3 segundos
+        setTimeout(fLoad, 3000);
+    }
 }
 
 function fRender() {
@@ -135,7 +142,7 @@ function fRender() {
         const diff = Math.floor((hoy - new Date(x.u)) / 86400000);
         return `<tr><td><b>${x.e}</b></td><td>${x.f}</td><td>${x.u}</td><td>${diff} d</td><td>${diff>=90?'VENCIDO':'OK'}</td><td><button onclick="reM(${i})">Reset</button></td></tr>`;
     }).join('');
-    document.getElementById('hBody').innerHTML = local.h.slice(0,12).map(x => `<tr><td>${x.fecha}</td><td>${x.ref}</td><td>${x.prod}</td><td>${x.cant}</td><td><b>${x.saldo}</b></td></tr>`).join('');
+    document.getElementById('hBody').innerHTML = local.h.slice(0,12).map(x => `<tr><td>${x.fecha || '---'}</td><td>${x.ref || '---'}</td><td>${x.prod || '---'}</td><td>${x.cant || '0'}</td><td><b>${x.saldo || '0'}</b></td></tr>`).join('');
 }
 
 async function doSave() {
@@ -159,9 +166,13 @@ async function doSave() {
     }
 
     b.disabled = true; b.innerText = "Sincronizando...";
-    await fetch(URL_BASE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: m, producto: p, cantidad: c, responsable: refHoja, stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) }) });
-    
-    setTimeout(() => { fLoad(); b.disabled = false; b.innerText = "Guardar Operación"; document.getElementById('inCant').value=""; }, 1500);
+    try {
+        await fetch(URL_BASE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ tipo: m, producto: p, cantidad: c, responsable: refHoja, stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) }) });
+        setTimeout(() => { fLoad(); b.disabled = false; b.innerText = "Guardar Operación"; document.getElementById('inCant').value=""; }, 1500);
+    } catch (e) {
+        alert("Error al guardar. Verifique conexión.");
+        b.disabled = false; b.innerText = "Guardar Operación";
+    }
 }
 
 function opSim() {
