@@ -93,39 +93,71 @@ async function cargarDatosDesdeNube() {
 }
 
 function procesarMovimiento() {
+    // 1. Obtener valores del formulario
     const btn = document.getElementById('btnGuardar');
-    const mov = document.getElementById('tipoMov').value.toUpperCase();
-    const prod = document.getElementById('prod').value;
+    const mov = document.getElementById('tipoMov').value.toUpperCase(); // SALIDA o INGRESO
+    const prod = document.getElementById('prod').value; // DIESEL o GASOHOL
     const cant = parseFloat(document.getElementById('cant').value);
-    const ref = document.getElementById('referencia').value || "DESPACHO";
+    const ref = document.getElementById('referencia').value || "DESPACHO DIARIO";
 
-    if (!cant || cant <= 0) return alert("Ingrese cantidad");
-    
-    btn.disabled = true; // Evitar doble click
-    btn.innerText = "Guardando...";
-
-    let nD = db.stockFuel.diesel;
-    let nG = db.stockFuel.gasohol;
-
-    if (prod === 'DIESEL') nD = (mov === 'SALIDA') ? nD - cant : nD + cant;
-    else nG = (mov === 'SALIDA') ? nG - cant : nG + cant;
-
-    if (nD < 0 || nG < 0) {
-        btn.disabled = false; btn.innerText = "Guardar Operación";
-        return alert("Error: Stock insuficiente");
+    // 2. Validar entrada
+    if (isNaN(cant) || cant <= 0) {
+        alert("Por favor, ingrese una cantidad válida.");
+        return;
     }
 
-    const payload = { tipo: mov, producto: prod, cantidad: cant, responsable: ref.toUpperCase(), stockDiesel: nD.toFixed(2), stockGasohol: nG.toFixed(2) };
+    // 3. --- EL CÓDIGO NUEVO VA AQUÍ ---
+    // Tomamos el stock actual de la memoria local
+    let nD = parseFloat(db.stockFuel.diesel);
+    let nG = parseFloat(db.stockFuel.gasohol);
 
-    fetch(URL_GOOGLE_SHEETS, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
-    .then(() => {
-        db.stockFuel.diesel = nD; db.stockFuel.gasohol = nG;
-        actualizarUI();
-        setTimeout(() => { 
-            cargarDatosDesdeNube(); 
-            btn.disabled = false; 
+    // Realizamos el cálculo matemático
+    if (prod === 'DIESEL') {
+        nD = (mov === 'SALIDA') ? nD - cant : nD + cant;
+    } else {
+        nG = (mov === 'SALIDA') ? nG - cant : nG + cant;
+    }
+
+    // FORZAR 2 DECIMALES SIEMPRE (Para evitar el error de 170.3400000003)
+    nD = Math.round(nD * 100) / 100;
+    nG = Math.round(nG * 100) / 100;
+
+    // 4. Validar que no se desborde a negativo
+    if (nD < 0 || nG < 0) {
+        alert("Error: Stock insuficiente para realizar esta operación.");
+        return;
+    }
+
+    // 5. Bloquear botón para evitar doble registro
+    btn.disabled = true;
+    btn.innerText = "Sincronizando...";
+
+    // 6. Enviar a Google Sheets con los valores ya calculados
+    fetch(URL_GOOGLE_SHEETS, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({
+            tipo: mov,
+            producto: prod,
+            cantidad: cant,
+            responsable: ref.toUpperCase(),
+            stockDiesel: nD,
+            stockGasohol: nG
+        })
+    }).then(() => {
+        // Actualizar memoria local inmediatamente
+        db.stockFuel.diesel = nD;
+        db.stockFuel.gasohol = nG;
+        
+        actualizarUI(); // Refrescar los números en pantalla
+        
+        // Limpiar formulario y desbloquear
+        setTimeout(() => {
+            cargarDatosDesdeNube(); // Re-sincronizar con el Excel
+            btn.disabled = false;
             btn.innerText = "Guardar Operación";
             document.getElementById('cant').value = "";
+            document.getElementById('referencia').value = "";
         }, 2000);
     });
 }
@@ -209,5 +241,6 @@ cargarDatosDesdeNube(); setInterval(cargarDatosDesdeNube, 60000);
 </script>
 </body>
 </html>
+
 
 
